@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Surfaces */
+  --color-surface-base: #faf8f4;
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #f1efe8;
+  --color-surface-overlay: rgba(28, 27, 23, 0.5);
+
+  /* Borders */
+  --color-border: #e4e1d6;
+  --color-border-strong: #cdc9ba;
+
+  /* Text */
+  --color-text-primary: #1c1b17;
+  --color-text-secondary: #55534a;
+  --color-text-muted: #8a8778;
+  --color-text-inverse: #faf8f4;
+
+  /* Brand accents */
+  --color-accent-emerald: #3d6b55;
+  --color-accent-emerald-soft: #e3ede6;
+  --color-accent-slate: #52627a;
+  --color-accent-slate-soft: #e6ebf1;
+
+  /* Status */
+  --color-status-positive: #2f6b3f;
+  --color-status-positive-soft: #e4efe3;
+  --color-status-attention: #a1700f;
+  --color-status-attention-soft: #faf0da;
+  --color-status-concerning: #a23b2c;
+  --color-status-concerning-soft: #f6e3de;
+  --color-status-info: #565b62;
+  --color-status-info-soft: #ebeae5;
+
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--color-surface-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+/* Tabular numerals everywhere a metric appears */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Visible, on-brand focus ring instead of the browser default */
+:focus-visible {
+  outline: 2px solid var(--color-accent-emerald);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.focus\:not-sr-only:focus {
+  position: fixed;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Thin 1px hairlines used throughout instead of heavy card borders */
+.hairline {
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
