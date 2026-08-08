@@ -16,7 +16,8 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
       </div>
       <h2 className="text-lg font-semibold text-text-primary">Something went wrong loading this page</h2>
       <p className="text-sm text-text-secondary">
-        This is a prototype using local mock data, so this shouldn&apos;t normally happen. Try again.
+        This might be a temporary connection issue with the backend. Make sure the server is
+        running and try again.
       </p>
       <Button onClick={reset} variant="secondary">
         Try again
