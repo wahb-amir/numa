@@ -11,7 +11,8 @@ const buttonVariants = cva(
         primary: "bg-accent-emerald text-text-inverse hover:bg-[#325a46]",
         secondary:
           "border border-border-strong bg-surface-raised text-text-primary hover:bg-surface-sunken",
-        ghost: "text-text-secondary hover:bg-surface-sunken hover:text-text-primary",
+        ghost:
+          "text-text-secondary hover:bg-surface-sunken hover:text-text-primary",
       },
       size: {
         default: "px-4 py-2",
@@ -20,16 +21,28 @@ const buttonVariants = cva(
       },
     },
     defaultVariants: { variant: "primary", size: "default" },
-  }
+  },
 );
 
 export interface ButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 
-export function Button({ className, variant, size, asChild, ...props }: ButtonProps) {
+export function Button({
+  className,
+  variant,
+  size,
+  asChild,
+  ...props
+}: ButtonProps) {
   const Comp = asChild ? Slot : "button";
-  return <Comp className={cn(buttonVariants({ variant, size }), className)} {...props} />;
+  return (
+    <Comp
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...props}
+    />
+  );
 }

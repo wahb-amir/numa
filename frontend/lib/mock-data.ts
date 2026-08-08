@@ -12,7 +12,7 @@ function mulberry32(seed: number) {
 }
 
 const rand = mulberry32(42);
-const pick = <T,>(arr: T[]) => arr[Math.floor(rand() * arr.length)] as T;
+const pick = <T>(arr: T[]) => arr[Math.floor(rand() * arr.length)] as T;
 
 const NOTES = [
   "Skipped breakfast, rushed out the door",
@@ -43,15 +43,17 @@ function buildDailyMetrics(): DailyMetrics[] {
     const drift = (rand() - 0.5) * 10;
     baseline = Math.max(35, Math.min(90, baseline + drift * 0.3));
 
-    const sleepHours = missing ? null : Math.round((5.5 + rand() * 3) * 10) / 10;
+    const sleepHours = missing
+      ? null
+      : Math.round((5.5 + rand() * 3) * 10) / 10;
     const sleepQuality: DailyMetrics["sleepQuality"] =
       missing || sleepHours === null
         ? null
         : sleepHours < 6.2
-        ? "poor"
-        : sleepHours < 7.3
-        ? "fair"
-        : "good";
+          ? "poor"
+          : sleepHours < 7.3
+            ? "fair"
+            : "good";
 
     days.push({
       dateIndex: i,
@@ -72,7 +74,13 @@ function buildDailyMetrics(): DailyMetrics[] {
 export const dailyMetrics = buildDailyMetrics();
 
 function buildWorkouts(): Workout[] {
-  const types: Workout["type"][] = ["Run", "Ride", "Strength", "Swim", "Mobility"];
+  const types: Workout["type"][] = [
+    "Run",
+    "Ride",
+    "Strength",
+    "Swim",
+    "Mobility",
+  ];
   const workouts: Workout[] = [];
   let idCounter = 1;
 
@@ -92,15 +100,18 @@ function buildWorkouts(): Workout[] {
         type === "Run"
           ? pick(["Easy Run", "Tempo Run", "Long Run", "Recovery Jog"])
           : type === "Ride"
-          ? pick(["Endurance Ride", "Interval Session", "Recovery Spin"])
-          : type === "Strength"
-          ? pick(["Lower Body", "Upper Body", "Full Body"])
-          : type === "Swim"
-          ? "Pool Session"
-          : "Mobility & Stretch",
+            ? pick(["Endurance Ride", "Interval Session", "Recovery Spin"])
+            : type === "Strength"
+              ? pick(["Lower Body", "Upper Body", "Full Body"])
+              : type === "Swim"
+                ? "Pool Session"
+                : "Mobility & Stretch",
       distanceKm: isCardio ? Math.round((3 + rand() * 15) * 10) / 10 : null,
       durationMin: Math.round(20 + rand() * 70),
-      avgPace: type === "Run" ? `${4 + Math.floor(rand() * 2)}:${String(Math.floor(rand() * 60)).padStart(2, "0")}/km` : null,
+      avgPace:
+        type === "Run"
+          ? `${4 + Math.floor(rand() * 2)}:${String(Math.floor(rand() * 60)).padStart(2, "0")}/km`
+          : null,
       avgHR: isCardio ? Math.round(128 + rand() * 40) : null,
       perceivedEffort: Math.round(3 + rand() * 6),
       reflection: rand() < 0.6 ? pick(NOTES) : null,
@@ -141,7 +152,9 @@ export const insights: Insight[] = [
       "The pattern held across both training and rest days",
     ],
     confidence: "high",
-    alternatives: ["Stress or late meals on those same nights could be a shared underlying cause"],
+    alternatives: [
+      "Stress or late meals on those same nights could be a shared underlying cause",
+    ],
     relatedMetric: "Sleep Duration vs. Recovery",
     status: "attention",
   },
@@ -155,7 +168,9 @@ export const insights: Insight[] = [
       "Perceived effort at matched paces has dropped slightly across the same window",
     ],
     confidence: "moderate",
-    alternatives: ["General fitness gains could also explain part of this trend"],
+    alternatives: [
+      "General fitness gains could also explain part of this trend",
+    ],
     relatedMetric: "Heat Adaptation",
     status: "positive",
   },
@@ -172,7 +187,10 @@ function buildTimeline(): TimelineEvent[] {
       category: "workout",
       title: `${w.type} — ${w.title}`,
       detail: w.reflection ?? `${w.durationMin} min session logged`,
-      status: w.baselineDeltaPct !== null && w.baselineDeltaPct < -8 ? "attention" : "info",
+      status:
+        w.baselineDeltaPct !== null && w.baselineDeltaPct < -8
+          ? "attention"
+          : "info",
     });
   }
   for (const d of dailyMetrics) {

@@ -5,7 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: Date, opts: Intl.DateTimeFormatOptions = {}): string {
+export function formatDate(
+  date: Date,
+  opts: Intl.DateTimeFormatOptions = {},
+): string {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",

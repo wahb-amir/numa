@@ -8,7 +8,12 @@ import { TodayStateCard } from "@/components/dashboard/today-state-card";
 import { WhatChanged } from "@/components/dashboard/what-changed";
 import { AIInsightCard } from "@/components/dashboard/ai-insight-card";
 import { getWorkouts, getBaselines } from "@/lib/api-client";
-import type { ApiWorkout, ApiBaseline, DailyMetrics, Insight } from "@/lib/types";
+import type {
+  ApiWorkout,
+  ApiBaseline,
+  DailyMetrics,
+  Insight,
+} from "@/lib/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -17,7 +22,8 @@ function workoutToTodayMetrics(w: ApiWorkout): DailyMetrics {
   return {
     dateIndex: 0,
     date: new Date(w.start_time),
-    recoveryScore: typeof m?.recovery_score === "number" ? m.recovery_score : null,
+    recoveryScore:
+      typeof m?.recovery_score === "number" ? m.recovery_score : null,
     restingHR: typeof m?.resting_hr === "number" ? m.resting_hr : null,
     hrv: typeof m?.hrv === "number" ? m.hrv : null,
     sleepHours: typeof m?.sleep_hours === "number" ? m.sleep_hours : null,
@@ -35,14 +41,13 @@ function buildTrend(workouts: ApiWorkout[]): DailyMetrics[] {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().slice(0, 10);
-    const match = workouts.find(
-      (w) => w.start_time.slice(0, 10) === dateStr
-    );
+    const match = workouts.find((w) => w.start_time.slice(0, 10) === dateStr);
     const m = (match?.metrics ?? {}) as Record<string, number | null>;
     trend.push({
       dateIndex: i,
       date: d,
-      recoveryScore: typeof m?.recovery_score === "number" ? m.recovery_score : null,
+      recoveryScore:
+        typeof m?.recovery_score === "number" ? m.recovery_score : null,
       restingHR: null,
       hrv: null,
       sleepHours: null,
@@ -63,9 +68,12 @@ function insightFromBaselines(baselines: ApiBaseline[]): Insight | null {
     id: "baseline-insight",
     title: "Your baselines have been computed",
     observation: `Numa has analysed ${baselines.length} baseline metric${baselines.length > 1 ? "s" : ""} across your recorded activities. Upload more data to generate personalised pattern insights.`,
-    evidence: baselines.slice(0, 3).map(
-      (b) => `${b.activity_type} · ${b.metric_name}: ${Math.round(b.value)} (${b.sample_count} sessions)`
-    ),
+    evidence: baselines
+      .slice(0, 3)
+      .map(
+        (b) =>
+          `${b.activity_type} · ${b.metric_name}: ${Math.round(b.value)} (${b.sample_count} sessions)`,
+      ),
     confidence: "moderate",
     alternatives: ["More sessions will improve accuracy"],
     relatedMetric: first.metric_name,
@@ -96,10 +104,12 @@ function EmptyState() {
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-emerald-soft">
           <Upload className="h-6 w-6 text-accent-emerald" />
         </div>
-        <h2 className="mt-5 text-lg font-semibold text-text-primary">No data yet</h2>
+        <h2 className="mt-5 text-lg font-semibold text-text-primary">
+          No data yet
+        </h2>
         <p className="mt-2 max-w-sm text-sm text-text-secondary">
-          Upload a CSV or GPX export from your wearable or fitness app and Numa will start
-          building your personal health context.
+          Upload a CSV or GPX export from your wearable or fitness app and Numa
+          will start building your personal health context.
         </p>
         <Link
           href="/upload"
@@ -131,12 +141,17 @@ export default function DashboardPage() {
           setBaselines(b);
         }
       } catch {
-        if (!cancelled) setError("Could not reach the server. Check that the backend is running.");
+        if (!cancelled)
+          setError(
+            "Could not reach the server. Check that the backend is running.",
+          );
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const mostRecent = workouts[0];
@@ -170,8 +185,8 @@ export default function DashboardPage() {
             >
               <Upload className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>
-                <span className="font-semibold">Upload more data</span> — Numa gets smarter with
-                every session you add.
+                <span className="font-semibold">Upload more data</span> — Numa
+                gets smarter with every session you add.
               </span>
             </Link>
           )}

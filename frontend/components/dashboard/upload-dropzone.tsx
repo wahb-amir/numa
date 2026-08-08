@@ -2,11 +2,18 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, CheckCircle, AlertCircle, Loader2, CloudUpload } from "lucide-react";
+import {
+  Upload,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  CloudUpload,
+} from "lucide-react";
 import { signUpload, completeUpload, getUploadStatus } from "@/lib/api-client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-type UploadStatus = "idle" | "signing" | "uploading" | "processing" | "success" | "error";
+type UploadStatus =
+  "idle" | "signing" | "uploading" | "processing" | "success" | "error";
 
 export function UploadDropzone() {
   const [status, setStatus] = useState<UploadStatus>("idle");
@@ -62,12 +69,19 @@ export function UploadDropzone() {
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve();
           } else {
-            reject(new Error(`Storage upload failed with status ${xhr.status}`));
+            reject(
+              new Error(`Storage upload failed with status ${xhr.status}`),
+            );
           }
         });
-        xhr.addEventListener("error", () => reject(new Error("Network error during upload")));
+        xhr.addEventListener("error", () =>
+          reject(new Error("Network error during upload")),
+        );
         xhr.open("PUT", signedUrl);
-        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+        xhr.setRequestHeader(
+          "Content-Type",
+          file.type || "application/octet-stream",
+        );
         xhr.send(file);
       });
 
@@ -78,8 +92,13 @@ export function UploadDropzone() {
       pollStatus(uploadId);
     } catch (err: unknown) {
       setStatus("error");
-      const apiErr = err as { response?: { data?: { error?: string } }; message?: string };
-      setErrorMessage(apiErr?.response?.data?.error ?? apiErr?.message ?? "Upload failed");
+      const apiErr = err as {
+        response?: { data?: { error?: string } };
+        message?: string;
+      };
+      setErrorMessage(
+        apiErr?.response?.data?.error ?? apiErr?.message ?? "Upload failed",
+      );
     }
   }, []);
 
@@ -107,7 +126,8 @@ export function UploadDropzone() {
       <CardHeader>
         <CardTitle>Upload Activity Data</CardTitle>
         <p className="text-xs text-text-muted mt-1">
-          Drag &amp; drop a CSV or GPX file — uploads directly and securely to storage.
+          Drag &amp; drop a CSV or GPX file — uploads directly and securely to
+          storage.
         </p>
       </CardHeader>
 
@@ -131,9 +151,13 @@ export function UploadDropzone() {
               aria-hidden="true"
             />
             <p className="text-sm font-semibold text-text-primary">
-              {isDragActive ? "Drop the file here" : "Drag & drop a CSV or GPX file"}
+              {isDragActive
+                ? "Drop the file here"
+                : "Drag & drop a CSV or GPX file"}
             </p>
-            <p className="mt-1.5 text-xs text-text-muted">or click to browse your files</p>
+            <p className="mt-1.5 text-xs text-text-muted">
+              or click to browse your files
+            </p>
             <div className="mt-4 flex justify-center gap-2">
               {[".csv", ".gpx"].map((ext) => (
                 <span
@@ -150,19 +174,31 @@ export function UploadDropzone() {
         {/* ── Signing (getting upload URL) ── */}
         {status === "signing" && (
           <div className="flex flex-col items-center justify-center p-12 text-center">
-            <Loader2 className="mb-4 h-10 w-10 animate-spin text-accent-emerald" aria-hidden="true" />
-            <p className="text-sm font-semibold text-text-primary">Preparing secure upload…</p>
-            <p className="mt-1 text-xs text-text-muted">Generating a signed URL</p>
+            <Loader2
+              className="mb-4 h-10 w-10 animate-spin text-accent-emerald"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-semibold text-text-primary">
+              Preparing secure upload…
+            </p>
+            <p className="mt-1 text-xs text-text-muted">
+              Generating a signed URL
+            </p>
           </div>
         )}
 
         {/* ── Uploading directly to Supabase ── */}
         {status === "uploading" && (
           <div className="flex flex-col items-center justify-center gap-5 p-12 text-center">
-            <Upload className="h-10 w-10 text-accent-emerald" aria-hidden="true" />
+            <Upload
+              className="h-10 w-10 text-accent-emerald"
+              aria-hidden="true"
+            />
             <div className="w-full max-w-xs">
               <div className="mb-2 flex justify-between text-xs text-text-muted">
-                <span className="truncate font-medium text-text-primary">{filename}</span>
+                <span className="truncate font-medium text-text-primary">
+                  {filename}
+                </span>
                 <span>{uploadProgress}%</span>
               </div>
               <div
@@ -179,17 +215,25 @@ export function UploadDropzone() {
                 />
               </div>
             </div>
-            <p className="text-sm text-text-secondary">Uploading directly to secure storage…</p>
+            <p className="text-sm text-text-secondary">
+              Uploading directly to secure storage…
+            </p>
           </div>
         )}
 
         {/* ── Processing (background worker) ── */}
         {status === "processing" && (
           <div className="flex flex-col items-center justify-center p-12 text-center">
-            <Loader2 className="mb-4 h-10 w-10 animate-spin text-status-attention" aria-hidden="true" />
-            <p className="text-sm font-semibold text-text-primary">Processing activity data…</p>
+            <Loader2
+              className="mb-4 h-10 w-10 animate-spin text-status-attention"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-semibold text-text-primary">
+              Processing activity data…
+            </p>
             <p className="mt-1.5 text-xs text-text-muted">
-              Numa is parsing your file and extracting metrics. This usually takes a few seconds.
+              Numa is parsing your file and extracting metrics. This usually
+              takes a few seconds.
             </p>
           </div>
         )}
@@ -198,11 +242,17 @@ export function UploadDropzone() {
         {status === "success" && (
           <div className="flex flex-col items-center justify-center p-12 text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-status-positive-soft">
-              <CheckCircle className="h-7 w-7 text-status-positive" aria-hidden="true" />
+              <CheckCircle
+                className="h-7 w-7 text-status-positive"
+                aria-hidden="true"
+              />
             </div>
-            <p className="text-base font-semibold text-text-primary">Upload processed!</p>
+            <p className="text-base font-semibold text-text-primary">
+              Upload processed!
+            </p>
             <p className="mt-1.5 text-sm text-text-secondary">
-              Your data has been ingested. Head to the Dashboard to see it reflected.
+              Your data has been ingested. Head to the Dashboard to see it
+              reflected.
             </p>
             <button
               onClick={resetState}
@@ -217,9 +267,14 @@ export function UploadDropzone() {
         {status === "error" && (
           <div className="flex flex-col items-center justify-center p-12 text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-status-concerning-soft">
-              <AlertCircle className="h-7 w-7 text-status-concerning" aria-hidden="true" />
+              <AlertCircle
+                className="h-7 w-7 text-status-concerning"
+                aria-hidden="true"
+              />
             </div>
-            <p className="text-base font-semibold text-status-concerning">Upload failed</p>
+            <p className="text-base font-semibold text-status-concerning">
+              Upload failed
+            </p>
             <p className="mt-1.5 text-sm text-text-secondary">
               {errorMessage || "Something went wrong during the upload."}
             </p>

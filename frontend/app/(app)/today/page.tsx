@@ -12,7 +12,10 @@ import type { ApiWorkout } from "@/lib/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function extractMetric(metrics: Record<string, unknown>, key: string): number | null {
+function extractMetric(
+  metrics: Record<string, unknown>,
+  key: string,
+): number | null {
   const v = metrics[key];
   return typeof v === "number" ? v : null;
 }
@@ -21,7 +24,11 @@ function formatDayLabel(workout: ApiWorkout, index: number): string {
   const date = new Date(workout.start_time);
   if (index === 0) return "Today";
   if (index === 1) return "Yesterday";
-  return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -59,7 +66,9 @@ export default function TodayPage() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const latest = workouts[0];
@@ -72,7 +81,10 @@ export default function TodayPage() {
 
   return (
     <div>
-      <TopHeader title="Today" subtitle="Granular metrics for your current day" />
+      <TopHeader
+        title="Today"
+        subtitle="Granular metrics for your current day"
+      />
 
       {loading && <Skeleton />}
 
@@ -90,7 +102,9 @@ export default function TodayPage() {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-emerald-soft">
               <Upload className="h-6 w-6 text-accent-emerald" />
             </div>
-            <h2 className="mt-5 text-lg font-semibold text-text-primary">No workout data yet</h2>
+            <h2 className="mt-5 text-lg font-semibold text-text-primary">
+              No workout data yet
+            </h2>
             <p className="mt-2 max-w-sm text-sm text-text-secondary">
               Upload your first workout file to start seeing daily metrics here.
             </p>
@@ -110,12 +124,18 @@ export default function TodayPage() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <MetricStat
               label="Recovery"
-              value={todayMetrics ? extractMetric(todayMetrics, "recovery_score") : null}
+              value={
+                todayMetrics
+                  ? extractMetric(todayMetrics, "recovery_score")
+                  : null
+              }
               unit="/100"
             />
             <MetricStat
               label="Resting HR"
-              value={todayMetrics ? extractMetric(todayMetrics, "resting_hr") : null}
+              value={
+                todayMetrics ? extractMetric(todayMetrics, "resting_hr") : null
+              }
               unit="bpm"
             />
             <MetricStat
@@ -125,7 +145,9 @@ export default function TodayPage() {
             />
             <MetricStat
               label="Sleep"
-              value={todayMetrics ? extractMetric(todayMetrics, "sleep_hours") : null}
+              value={
+                todayMetrics ? extractMetric(todayMetrics, "sleep_hours") : null
+              }
               unit="hrs"
             />
             <MetricStat
@@ -135,7 +157,11 @@ export default function TodayPage() {
             />
             <MetricStat
               label="Training load"
-              value={todayMetrics ? extractMetric(todayMetrics, "training_load") : null}
+              value={
+                todayMetrics
+                  ? extractMetric(todayMetrics, "training_load")
+                  : null
+              }
               unit="/100"
             />
           </div>
@@ -151,11 +177,21 @@ export default function TodayPage() {
                 <table className="w-full min-w-[560px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-border text-xs text-text-muted">
-                      <th scope="col" className="py-2 pr-4 font-medium">Session</th>
-                      <th scope="col" className="py-2 pr-4 font-medium">Type</th>
-                      <th scope="col" className="py-2 pr-4 font-medium">Duration</th>
-                      <th scope="col" className="py-2 pr-4 font-medium">Source</th>
-                      <th scope="col" className="py-2 font-medium">Date</th>
+                      <th scope="col" className="py-2 pr-4 font-medium">
+                        Session
+                      </th>
+                      <th scope="col" className="py-2 pr-4 font-medium">
+                        Type
+                      </th>
+                      <th scope="col" className="py-2 pr-4 font-medium">
+                        Duration
+                      </th>
+                      <th scope="col" className="py-2 pr-4 font-medium">
+                        Source
+                      </th>
+                      <th scope="col" className="py-2 font-medium">
+                        Date
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -164,11 +200,15 @@ export default function TodayPage() {
                         <td className="py-2.5 pr-4 font-medium text-text-primary capitalize">
                           {formatDayLabel(w, i)}
                         </td>
-                        <td className="py-2.5 pr-4 text-text-secondary capitalize">{w.activity_type}</td>
+                        <td className="py-2.5 pr-4 text-text-secondary capitalize">
+                          {w.activity_type}
+                        </td>
                         <td className="py-2.5 pr-4 tabular text-text-secondary">
                           {Math.round(w.duration_seconds / 60)} min
                         </td>
-                        <td className="py-2.5 pr-4 text-text-muted capitalize">{w.source}</td>
+                        <td className="py-2.5 pr-4 text-text-muted capitalize">
+                          {w.source}
+                        </td>
                         <td className="py-2.5 text-text-muted">
                           {new Date(w.start_time).toLocaleDateString("en-US", {
                             month: "short",

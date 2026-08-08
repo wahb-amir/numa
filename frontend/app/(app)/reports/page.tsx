@@ -15,7 +15,9 @@ import type { ApiWorkout } from "@/lib/types";
 function average(nums: (number | null)[]): number | null {
   const valid = nums.filter((n): n is number => n !== null);
   if (!valid.length) return null;
-  return Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 10) / 10;
+  return (
+    Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 10) / 10
+  );
 }
 
 function isWithinLastNDays(isoDate: string, n: number): boolean {
@@ -30,7 +32,7 @@ function buildDurationSparkline(workouts: ApiWorkout[]): (number | null)[] {
   const slots: (number | null)[] = Array(30).fill(null);
   for (const w of workouts) {
     const daysAgo = Math.floor(
-      (Date.now() - new Date(w.start_time).getTime()) / 86400000
+      (Date.now() - new Date(w.start_time).getTime()) / 86400000,
     );
     if (daysAgo >= 0 && daysAgo < 30) {
       slots[29 - daysAgo] = Math.round(w.duration_seconds / 60);
@@ -64,17 +66,22 @@ export default function ReportsPage() {
         const data = await getWorkouts(100);
         if (!cancelled) setWorkouts(data);
       } catch {
-        if (!cancelled) setError("Could not load workout data from the server.");
+        if (!cancelled)
+          setError("Could not load workout data from the server.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const thisWeek = workouts.filter((w) => isWithinLastNDays(w.start_time, 7));
   const lastWeek = workouts.filter(
-    (w) => !isWithinLastNDays(w.start_time, 7) && isWithinLastNDays(w.start_time, 14)
+    (w) =>
+      !isWithinLastNDays(w.start_time, 7) &&
+      isWithinLastNDays(w.start_time, 14),
   );
   const thisMonth = workouts.filter((w) => isWithinLastNDays(w.start_time, 30));
 
@@ -85,14 +92,22 @@ export default function ReportsPage() {
       ? Math.round((avgDurThis - avgDurLast) * 10) / 10
       : null;
 
-  const totalTimeThisWeek = thisWeek.reduce((s, w) => s + Math.round(w.duration_seconds / 60), 0);
+  const totalTimeThisWeek = thisWeek.reduce(
+    (s, w) => s + Math.round(w.duration_seconds / 60),
+    0,
+  );
   const sparkline = buildDurationSparkline(workouts);
 
-  const activityTypes = Array.from(new Set(thisMonth.map((w) => w.activity_type)));
+  const activityTypes = Array.from(
+    new Set(thisMonth.map((w) => w.activity_type)),
+  );
 
   return (
     <div>
-      <TopHeader title="Reports" subtitle="Aggregated intelligence across weeks and months" />
+      <TopHeader
+        title="Reports"
+        subtitle="Aggregated intelligence across weeks and months"
+      />
 
       {loading && <Skeleton />}
 
@@ -110,9 +125,12 @@ export default function ReportsPage() {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-emerald-soft">
               <Upload className="h-6 w-6 text-accent-emerald" />
             </div>
-            <h2 className="mt-5 text-lg font-semibold text-text-primary">No data to report yet</h2>
+            <h2 className="mt-5 text-lg font-semibold text-text-primary">
+              No data to report yet
+            </h2>
             <p className="mt-2 max-w-sm text-sm text-text-secondary">
-              Reports populate automatically once you start uploading workout files.
+              Reports populate automatically once you start uploading workout
+              files.
             </p>
             <Link
               href="/upload"
@@ -144,8 +162,15 @@ export default function ReportsPage() {
                   }
                 />
                 <MetricStat label="Sessions" value={thisWeek.length} />
-                <MetricStat label="Total time" value={totalTimeThisWeek} unit="min" />
-                <MetricStat label="Activity types" value={activityTypes.length} />
+                <MetricStat
+                  label="Total time"
+                  value={totalTimeThisWeek}
+                  unit="min"
+                />
+                <MetricStat
+                  label="Activity types"
+                  value={activityTypes.length}
+                />
               </div>
               <div className="mt-6">
                 <p className="mb-2 text-xs font-medium text-text-muted">
@@ -166,31 +191,44 @@ export default function ReportsPage() {
                 <span className="font-semibold text-text-primary">
                   {thisMonth.length} session{thisMonth.length !== 1 ? "s" : ""}
                 </span>{" "}
-                across {new Set(thisMonth.map((w) => w.activity_type)).size} activity type
-                {new Set(thisMonth.map((w) => w.activity_type)).size !== 1 ? "s" : ""}.
+                across {new Set(thisMonth.map((w) => w.activity_type)).size}{" "}
+                activity type
+                {new Set(thisMonth.map((w) => w.activity_type)).size !== 1
+                  ? "s"
+                  : ""}
+                .
                 {durationDelta !== null && (
                   <>
-                    {" "}Your average session duration has been{" "}
+                    {" "}
+                    Your average session duration has been{" "}
                     <span className="font-semibold text-text-primary">
-                      {durationDelta > 0 ? "increasing" : durationDelta < 0 ? "decreasing" : "holding steady"}
+                      {durationDelta > 0
+                        ? "increasing"
+                        : durationDelta < 0
+                          ? "decreasing"
+                          : "holding steady"}
                     </span>{" "}
                     compared to last week.
                   </>
                 )}
               </p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {(["running", "cycling", "gym", "other"] as const).map((type) => {
-                  const count = thisMonth.filter((w) => w.activity_type === type).length;
-                  if (!count) return null;
-                  return (
-                    <MetricStat
-                      key={type}
-                      label={type.charAt(0).toUpperCase() + type.slice(1)}
-                      value={count}
-                      unit="sessions"
-                    />
-                  );
-                })}
+                {(["running", "cycling", "gym", "other"] as const).map(
+                  (type) => {
+                    const count = thisMonth.filter(
+                      (w) => w.activity_type === type,
+                    ).length;
+                    if (!count) return null;
+                    return (
+                      <MetricStat
+                        key={type}
+                        label={type.charAt(0).toUpperCase() + type.slice(1)}
+                        value={count}
+                        unit="sessions"
+                      />
+                    );
+                  },
+                )}
               </div>
             </CardContent>
           </Card>

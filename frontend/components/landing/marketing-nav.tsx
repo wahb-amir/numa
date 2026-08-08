@@ -19,12 +19,21 @@ export function MarketingNav() {
           <div className="flex h-7 w-7 items-center justify-center rounded-control bg-accent-emerald text-sm font-bold text-text-inverse">
             N
           </div>
-          <span className="text-sm font-bold tracking-tight text-text-primary">Numa</span>
+          <span className="text-sm font-bold tracking-tight text-text-primary">
+            Numa
+          </span>
         </Link>
 
-        <nav aria-label="Marketing" className="hidden items-center gap-8 md:flex">
+        <nav
+          aria-label="Marketing"
+          className="hidden items-center gap-8 md:flex"
+        >
           {LINKS.map((l) => (
-            <a key={l.href} href={l.href} className="text-sm font-medium text-text-secondary hover:text-text-primary">
+            <a
+              key={l.href}
+              href={l.href}
+              className="text-sm font-medium text-text-secondary hover:text-text-primary"
+            >
               {l.label}
             </a>
           ))}
@@ -43,12 +52,19 @@ export function MarketingNav() {
           aria-label={open ? "Close menu" : "Open menu"}
           className="flex h-10 w-10 items-center justify-center rounded-control text-text-primary md:hidden"
         >
-          {open ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
+          {open ? (
+            <X className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          )}
         </button>
       </div>
 
       {open && (
-        <nav aria-label="Marketing mobile" className="border-t border-border bg-surface-raised px-4 py-4 md:hidden">
+        <nav
+          aria-label="Marketing mobile"
+          className="border-t border-border bg-surface-raised px-4 py-4 md:hidden"
+        >
           <ul className="space-y-1">
             {LINKS.map((l) => (
               <li key={l.href}>

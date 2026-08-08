@@ -23,16 +23,31 @@ const EFFORT_LABELS = [
 ];
 
 const ENERGY_OPTIONS: { value: EnergyLevel; label: string; color: string }[] = [
-  { value: "low",    label: "Low",    color: "text-status-concerning bg-status-concerning-soft border-status-concerning" },
-  { value: "normal", label: "Normal", color: "text-status-attention  bg-status-attention-soft  border-status-attention"  },
-  { value: "high",   label: "High",   color: "text-status-positive   bg-status-positive-soft   border-status-positive"   },
+  {
+    value: "low",
+    label: "Low",
+    color:
+      "text-status-concerning bg-status-concerning-soft border-status-concerning",
+  },
+  {
+    value: "normal",
+    label: "Normal",
+    color:
+      "text-status-attention  bg-status-attention-soft  border-status-attention",
+  },
+  {
+    value: "high",
+    label: "High",
+    color:
+      "text-status-positive   bg-status-positive-soft   border-status-positive",
+  },
 ];
 
 const ACTIVITY_LABEL: Record<ActivityType, string> = {
   running: "Running",
   cycling: "Cycling",
-  gym:     "Gym",
-  other:   "Other",
+  gym: "Gym",
+  other: "Other",
 };
 
 function formatWorkoutOption(w: ApiWorkout): string {
@@ -55,22 +70,24 @@ interface ReflectionFormProps {
   workoutId?: string;
 }
 
-export function ReflectionForm({ workoutId: propWorkoutId }: ReflectionFormProps = {}) {
+export function ReflectionForm({
+  workoutId: propWorkoutId,
+}: ReflectionFormProps = {}) {
   // --- workout list (only needed when no workoutId prop is supplied)
-  const [workouts, setWorkouts]         = useState<ApiWorkout[]>([]);
+  const [workouts, setWorkouts] = useState<ApiWorkout[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(!propWorkoutId);
-  const [workoutsError, setWorkoutsError]     = useState<string | null>(null);
+  const [workoutsError, setWorkoutsError] = useState<string | null>(null);
 
   // --- form state
-  const [selectedId, setSelectedId]     = useState<string>(propWorkoutId ?? "");
-  const [effort, setEffort]             = useState(5);
-  const [energyLevel, setEnergyLevel]   = useState<EnergyLevel | "">("");
-  const [note, setNote]                 = useState("");
+  const [selectedId, setSelectedId] = useState<string>(propWorkoutId ?? "");
+  const [effort, setEffort] = useState(5);
+  const [energyLevel, setEnergyLevel] = useState<EnergyLevel | "">("");
+  const [note, setNote] = useState("");
 
   // --- submission state
-  const [loading, setLoading]           = useState(false);
-  const [submitted, setSubmitted]       = useState(false);
-  const [error, setError]               = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch the last 20 workouts for the selector
   useEffect(() => {
@@ -148,7 +165,8 @@ export function ReflectionForm({ workoutId: propWorkoutId }: ReflectionFormProps
           <CardTitle>Log a Reflection</CardTitle>
         </CardHeader>
         <CardContent className="pt-0 text-sm text-text-muted">
-          No workouts found. Log or upload a workout first, then come back to add a reflection.
+          No workouts found. Log or upload a workout first, then come back to
+          add a reflection.
         </CardContent>
       </Card>
     );
@@ -218,8 +236,12 @@ export function ReflectionForm({ workoutId: propWorkoutId }: ReflectionFormProps
               >
                 How did it feel?
               </label>
-              <p id="reflection-hint" className="mt-0.5 text-xs text-text-muted">
-                Subjective notes help Numa explain deviations that numbers alone can&apos;t.
+              <p
+                id="reflection-hint"
+                className="mt-0.5 text-xs text-text-muted"
+              >
+                Subjective notes help Numa explain deviations that numbers alone
+                can&apos;t.
               </p>
               <textarea
                 id="reflection-note"
@@ -274,7 +296,11 @@ export function ReflectionForm({ workoutId: propWorkoutId }: ReflectionFormProps
               <legend className="text-sm font-medium text-text-primary">
                 Energy level
               </legend>
-              <div className="mt-2 flex gap-3" role="radiogroup" aria-label="Energy level">
+              <div
+                className="mt-2 flex gap-3"
+                role="radiogroup"
+                aria-label="Energy level"
+              >
                 {ENERGY_OPTIONS.map(({ value, label, color }) => {
                   const active = energyLevel === value;
                   return (
@@ -285,7 +311,9 @@ export function ReflectionForm({ workoutId: propWorkoutId }: ReflectionFormProps
                       aria-checked={active}
                       onClick={() => setEnergyLevel(active ? "" : value)}
                       className={`flex-1 rounded-control border px-3 py-2 text-sm font-semibold transition-colors ${
-                        active ? color : "border-border-strong text-text-secondary hover:bg-surface-sunken"
+                        active
+                          ? color
+                          : "border-border-strong text-text-secondary hover:bg-surface-sunken"
                       }`}
                     >
                       {label}

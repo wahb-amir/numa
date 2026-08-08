@@ -1,0 +1,14 @@
+# Build output directories
+dist/
+**/dist/
+.next/
+**/.next/
+
+# Package manager files / locks (optional but recommended)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Cache or build artifact folders
+node_modules/
+**/node_modules/

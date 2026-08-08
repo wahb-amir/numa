@@ -22,7 +22,7 @@ interface Props {
 
 function buildDeviations(
   baselines: ApiBaseline[],
-  latest?: ApiWorkout
+  latest?: ApiWorkout,
 ): Deviation[] {
   if (!baselines.length || !latest) return [];
 
@@ -36,7 +36,9 @@ function buildDeviations(
   // Duration
   const durationMin = Math.round(latest.duration_seconds / 60);
   const baselineDurationSec = findBaseline("avg_duration_seconds");
-  const baselineDurationMin = baselineDurationSec ? Math.round(baselineDurationSec / 60) : null;
+  const baselineDurationMin = baselineDurationSec
+    ? Math.round(baselineDurationSec / 60)
+    : null;
   if (baselineDurationMin !== null) {
     const delta = durationMin - baselineDurationMin;
     rows.push({
@@ -116,13 +118,18 @@ export function WhatChanged({ baselines = [], latestWorkout }: Props) {
                   <div className="flex items-center gap-3">
                     <StatusDot status={d.status} className="shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-text-primary">{d.label}</p>
+                      <p className="text-sm font-medium text-text-primary">
+                        {d.label}
+                      </p>
                       <p className="text-xs text-text-muted">{d.deltaLabel}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 text-sm font-semibold tabular text-text-primary">
                     {d.value}
-                    <Icon className="h-3.5 w-3.5 text-text-muted" aria-hidden="true" />
+                    <Icon
+                      className="h-3.5 w-3.5 text-text-muted"
+                      aria-hidden="true"
+                    />
                   </div>
                 </li>
               );

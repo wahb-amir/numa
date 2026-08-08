@@ -1,7 +1,7 @@
-import { Router } from 'express';
-import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
-import { supabase } from '../config/supabase';
-import { uploadQueue } from '../jobs/queues';
+import { Router } from "express";
+import { requireAuth, AuthenticatedRequest } from "../middleware/auth";
+import { supabase } from "../config/supabase";
+import { uploadQueue } from "../jobs/queues";
 
 export const uploadRouter = Router();
 
@@ -12,131 +12,145 @@ export const uploadRouter = Router();
 // Body: { filename: string }
 // Returns: { signedUrl: string, uploadId: string, fileKey: string }
 // ---------------------------------------------------------------------------
-uploadRouter.post('/sign', requireAuth, async (req: AuthenticatedRequest, res) => {
-  try {
-    const { filename } = req.body as { filename?: string };
-    if (!filename || typeof filename !== 'string') {
-      return res.status(400).json({ error: 'filename is required' });
-    }
+uploadRouter.post(
+  "/sign",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { filename } = req.body as { filename?: string };
+      if (!filename || typeof filename !== "string") {
+        return res.status(400).json({ error: "filename is required" });
+      }
 
-    const fileExt = filename.split('.').pop()?.toLowerCase() ?? '';
-    if (!['csv', 'gpx'].includes(fileExt)) {
-      return res.status(400).json({
-        error: 'Unsupported file type. Only CSV and GPX files are allowed.',
+      const fileExt = filename.split(".").pop()?.toLowerCase() ?? "";
+      if (!["csv", "gpx"].includes(fileExt)) {
+        return res.status(400).json({
+          error: "Unsupported file type. Only CSV and GPX files are allowed.",
+        });
+      }
+
+      const userId = req.user!.id;
+      const fileKey = `${userId}/${Date.now()}_${filename}`;
+
+      // Create a signed upload URL (the frontend will PUT directly to this URL)
+      const { data: signedData, error: signError } = await supabase.storage
+        .from("raw-uploads")
+        .createSignedUploadUrl(fileKey);
+
+      if (signError || !signedData) {
+        console.error("Signed URL error:", signError);
+        return res.status(500).json({ error: "Failed to generate upload URL" });
+      }
+
+      // Record the pending upload in the database so we can track it
+      const { data: dbData, error: dbError } = await supabase
+        .from("raw_uploads")
+        .insert({
+          user_id: userId,
+          file_key: fileKey,
+          original_filename: filename,
+          file_type: fileExt,
+          upload_status: "pending",
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error("Database insert error:", dbError);
+        return res
+          .status(500)
+          .json({ error: "Failed to record upload in database" });
+      }
+
+      return res.status(200).json({
+        signedUrl: signedData.signedUrl,
+        token: signedData.token,
+        fileKey,
+        uploadId: dbData.id,
       });
+    } catch (error) {
+      console.error("Sign upload error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-
-    const userId = req.user!.id;
-    const fileKey = `${userId}/${Date.now()}_${filename}`;
-
-    // Create a signed upload URL (the frontend will PUT directly to this URL)
-    const { data: signedData, error: signError } = await supabase.storage
-      .from('raw-uploads')
-      .createSignedUploadUrl(fileKey);
-
-    if (signError || !signedData) {
-      console.error('Signed URL error:', signError);
-      return res.status(500).json({ error: 'Failed to generate upload URL' });
-    }
-
-    // Record the pending upload in the database so we can track it
-    const { data: dbData, error: dbError } = await supabase
-      .from('raw_uploads')
-      .insert({
-        user_id: userId,
-        file_key: fileKey,
-        original_filename: filename,
-        file_type: fileExt,
-        upload_status: 'pending',
-      })
-      .select()
-      .single();
-
-    if (dbError) {
-      console.error('Database insert error:', dbError);
-      return res.status(500).json({ error: 'Failed to record upload in database' });
-    }
-
-    return res.status(200).json({
-      signedUrl: signedData.signedUrl,
-      token: signedData.token,
-      fileKey,
-      uploadId: dbData.id,
-    });
-  } catch (error) {
-    console.error('Sign upload error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  },
+);
 
 // ---------------------------------------------------------------------------
 // POST /uploads/:id/complete
 // Called by the frontend after it has successfully PUT the file to Supabase.
 // Enqueues the background processing job.
 // ---------------------------------------------------------------------------
-uploadRouter.post('/:id/complete', requireAuth, async (req: AuthenticatedRequest, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user!.id;
+uploadRouter.post(
+  "/:id/complete",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user!.id;
 
-    // Look up the upload, verifying ownership
-    const { data: upload, error: fetchError } = await supabase
-      .from('raw_uploads')
-      .select('id, file_key, file_type, upload_status')
-      .eq('id', id)
-      .eq('user_id', userId)
-      .single();
+      // Look up the upload, verifying ownership
+      const { data: upload, error: fetchError } = await supabase
+        .from("raw_uploads")
+        .select("id, file_key, file_type, upload_status")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .single();
 
-    if (fetchError || !upload) {
-      return res.status(404).json({ error: 'Upload not found' });
-    }
+      if (fetchError || !upload) {
+        return res.status(404).json({ error: "Upload not found" });
+      }
 
-    if (upload.upload_status !== 'pending') {
-      return res.status(409).json({
-        error: `Upload is already in status '${upload.upload_status}'`,
+      if (upload.upload_status !== "pending") {
+        return res.status(409).json({
+          error: `Upload is already in status '${upload.upload_status}'`,
+        });
+      }
+
+      // Enqueue processing job
+      await uploadQueue.add("processUpload", {
+        uploadId: upload.id,
+        userId,
+        fileKey: upload.file_key,
+        fileType: upload.file_type,
       });
+
+      return res.status(202).json({
+        message: "Processing started",
+        uploadId: upload.id,
+      });
+    } catch (error) {
+      console.error("Complete upload error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-
-    // Enqueue processing job
-    await uploadQueue.add('processUpload', {
-      uploadId: upload.id,
-      userId,
-      fileKey: upload.file_key,
-      fileType: upload.file_type,
-    });
-
-    return res.status(202).json({
-      message: 'Processing started',
-      uploadId: upload.id,
-    });
-  } catch (error) {
-    console.error('Complete upload error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  },
+);
 
 // ---------------------------------------------------------------------------
 // GET /uploads/:id/status
 // Poll the processing status of a given upload.
 // ---------------------------------------------------------------------------
-uploadRouter.get('/:id/status', requireAuth, async (req: AuthenticatedRequest, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user!.id;
+uploadRouter.get(
+  "/:id/status",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user!.id;
 
-    const { data, error } = await supabase
-      .from('raw_uploads')
-      .select('upload_status, error_message')
-      .eq('id', id)
-      .eq('user_id', userId)
-      .single();
+      const { data, error } = await supabase
+        .from("raw_uploads")
+        .select("upload_status, error_message")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .single();
 
-    if (error || !data) {
-      return res.status(404).json({ error: 'Upload not found' });
+      if (error || !data) {
+        return res.status(404).json({ error: "Upload not found" });
+      }
+
+      return res.status(200).json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
     }
-
-    return res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  },
+);

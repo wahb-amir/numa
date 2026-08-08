@@ -81,8 +81,12 @@ function EmptyState({ hasWorkouts }: { hasWorkouts: boolean }) {
             className="rounded-card border border-border bg-surface-raised p-5"
           >
             <p className="text-xs font-bold text-accent-emerald">{step}</p>
-            <p className="mt-2 text-sm font-semibold text-text-primary">{title}</p>
-            <p className="mt-1.5 text-xs leading-relaxed text-text-secondary">{body}</p>
+            <p className="mt-2 text-sm font-semibold text-text-primary">
+              {title}
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-text-secondary">
+              {body}
+            </p>
           </div>
         ))}
       </div>
@@ -97,7 +101,8 @@ function BaselineCard({ baseline }: { baseline: ApiBaseline }) {
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
   const formattedActivity =
-    baseline.activity_type.charAt(0).toUpperCase() + baseline.activity_type.slice(1);
+    baseline.activity_type.charAt(0).toUpperCase() +
+    baseline.activity_type.slice(1);
 
   return (
     <Card>
@@ -117,10 +122,14 @@ function BaselineCard({ baseline }: { baseline: ApiBaseline }) {
         </div>
         <p className="mt-4 text-sm text-text-secondary">
           Your personal baseline for{" "}
-          <span className="font-semibold text-text-primary">{formattedMetric.toLowerCase()}</span>{" "}
+          <span className="font-semibold text-text-primary">
+            {formattedMetric.toLowerCase()}
+          </span>{" "}
           during {formattedActivity.toLowerCase()} is{" "}
-          <span className="font-semibold text-text-primary">{Math.round(baseline.value)}</span>.
-          Computed from {baseline.sample_count} logged session
+          <span className="font-semibold text-text-primary">
+            {Math.round(baseline.value)}
+          </span>
+          . Computed from {baseline.sample_count} logged session
           {baseline.sample_count !== 1 ? "s" : ""}.
         </p>
         <p className="mt-1 text-xs italic text-text-muted">
@@ -143,7 +152,10 @@ export default function InsightsPage() {
     let cancelled = false;
     (async () => {
       try {
-        const [bl, workouts] = await Promise.all([getBaselines(), getWorkouts(1)]);
+        const [bl, workouts] = await Promise.all([
+          getBaselines(),
+          getWorkouts(1),
+        ]);
         if (!cancelled) {
           setBaselines(bl);
           setWorkoutCount(workouts.length);
@@ -154,12 +166,17 @@ export default function InsightsPage() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
     <div>
-      <TopHeader title="Insights" subtitle="Patterns Numa has noticed in your data" />
+      <TopHeader
+        title="Insights"
+        subtitle="Patterns Numa has noticed in your data"
+      />
 
       {loading && <Skeleton />}
 
@@ -181,13 +198,22 @@ export default function InsightsPage() {
         <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 lg:px-8 lg:py-8">
           {/* Explainer banner */}
           <div className="flex items-start gap-3 rounded-card border border-accent-emerald/20 bg-accent-emerald-soft/30 px-5 py-4">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-accent-emerald" aria-hidden="true" />
+            <Sparkles
+              className="mt-0.5 h-4 w-4 shrink-0 text-accent-emerald"
+              aria-hidden="true"
+            />
             <div>
-              <p className="text-sm font-semibold text-accent-emerald">Baselines computed</p>
+              <p className="text-sm font-semibold text-accent-emerald">
+                Baselines computed
+              </p>
               <p className="mt-0.5 text-xs text-text-secondary">
-                Your personal baselines are active below. Pattern-level insights appear once Numa
-                has enough cross-metric data to draw reliable conclusions.{" "}
-                <Link href="/upload" className="font-semibold text-accent-emerald hover:underline">
+                Your personal baselines are active below. Pattern-level insights
+                appear once Numa has enough cross-metric data to draw reliable
+                conclusions.{" "}
+                <Link
+                  href="/upload"
+                  className="font-semibold text-accent-emerald hover:underline"
+                >
                   Upload more data →
                 </Link>
               </p>

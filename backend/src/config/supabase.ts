@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-import { env } from './env';
+import { createClient } from "@supabase/supabase-js";
+import { env } from "./env";
 
 // Determine default key for backend server operations (Secret Key preferred, fallback to Publishable Key)
 const primaryKey = env.SUPABASE_SECRET_KEY || env.SUPABASE_PUBLISHABLE_KEY;
@@ -21,7 +21,7 @@ export const supabaseSecret = createClient(
       persistSession: false,
       autoRefreshToken: false,
     },
-  }
+  },
 );
 
 // Explicit Publishable Key client for public / client-scoped operations
@@ -33,7 +33,7 @@ export const supabasePublishable = createClient(
       persistSession: false,
       autoRefreshToken: false,
     },
-  }
+  },
 );
 
 /**
@@ -41,16 +41,19 @@ export const supabasePublishable = createClient(
  * This client respects Row Level Security (RLS) policies for the authenticated user.
  */
 export const getScopedSupabaseClient = (jwtToken: string) => {
-  return createClient(env.SUPABASE_URL, env.SUPABASE_PUBLISHABLE_KEY || primaryKey, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${jwtToken}`,
+  return createClient(
+    env.SUPABASE_URL,
+    env.SUPABASE_PUBLISHABLE_KEY || primaryKey,
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+        },
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
       },
     },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
+  );
 };
-

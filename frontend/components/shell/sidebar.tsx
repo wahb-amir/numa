@@ -21,7 +21,8 @@ export function Sidebar() {
       </div>
       <ul className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {NAV_ITEMS.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
+          const active =
+            pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;
           return (
             <li key={item.href}>
@@ -32,10 +33,14 @@ export function Sidebar() {
                   "group flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-colors duration-150 ease-editorial",
                   active
                     ? "bg-accent-emerald-soft text-accent-emerald"
-                    : "text-text-secondary hover:bg-surface-sunken hover:text-text-primary"
+                    : "text-text-secondary hover:bg-surface-sunken hover:text-text-primary",
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" strokeWidth={2} />
+                <Icon
+                  className="h-4 w-4 shrink-0"
+                  aria-hidden="true"
+                  strokeWidth={2}
+                />
                 <span>{item.label}</span>
               </Link>
             </li>
@@ -48,8 +53,12 @@ export function Sidebar() {
             A
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-text-primary">Alex Rivera</p>
-            <p className="truncate text-xs text-text-muted">30-day baseline active</p>
+            <p className="truncate text-sm font-semibold text-text-primary">
+              Alex Rivera
+            </p>
+            <p className="truncate text-xs text-text-muted">
+              30-day baseline active
+            </p>
           </div>
         </div>
       </div>

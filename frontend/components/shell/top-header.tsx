@@ -1,13 +1,23 @@
 import { formatDate } from "@/lib/utils";
 import { Bell } from "lucide-react";
 
-export function TopHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+export function TopHeader({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
   const now = new Date();
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-surface-base/95 px-4 backdrop-blur-sm lg:px-8">
       <div className="min-w-0">
-        <h1 className="truncate text-lg font-bold tracking-tight text-text-primary">{title}</h1>
-        {subtitle && <p className="truncate text-xs text-text-muted">{subtitle}</p>}
+        <h1 className="truncate text-lg font-bold tracking-tight text-text-primary">
+          {title}
+        </h1>
+        {subtitle && (
+          <p className="truncate text-xs text-text-muted">{subtitle}</p>
+        )}
       </div>
       <div className="flex items-center gap-4">
         <span className="hidden text-sm text-text-secondary sm:inline tabular">

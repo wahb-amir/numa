@@ -26,7 +26,9 @@ export function ActivityListItem({ workout }: { workout: Workout }) {
             {workout.type}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-text-primary">{workout.title}</p>
+            <p className="truncate text-sm font-semibold text-text-primary">
+              {workout.title}
+            </p>
             <p className="text-xs text-text-muted">
               {formatDayLabel(workout.dateIndex)} · {workout.durationMin} min
               {workout.distanceKm ? ` · ${workout.distanceKm} km` : ""}
@@ -37,14 +39,21 @@ export function ActivityListItem({ workout }: { workout: Workout }) {
           {delta !== null && (
             <span
               className={`tabular text-xs font-semibold ${
-                delta < -5 ? "text-status-concerning" : delta > 5 ? "text-status-positive" : "text-text-muted"
+                delta < -5
+                  ? "text-status-concerning"
+                  : delta > 5
+                    ? "text-status-positive"
+                    : "text-text-muted"
               }`}
             >
               {delta > 0 ? "+" : ""}
               {delta}% vs baseline
             </span>
           )}
-          <ChevronRight className="h-4 w-4 text-text-muted" aria-hidden="true" />
+          <ChevronRight
+            className="h-4 w-4 text-text-muted"
+            aria-hidden="true"
+          />
         </div>
       </Link>
     </li>

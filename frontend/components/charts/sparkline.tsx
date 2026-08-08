@@ -18,8 +18,19 @@ export function Sparkline({
   const valid = data.filter((d): d is number => d !== null);
   if (valid.length < 2) {
     return (
-      <svg width={width} height={height} role="img" aria-label="Not enough data to chart a trend">
-        <text x={width / 2} y={height / 2} textAnchor="middle" fontSize="12" fill="var(--color-text-muted)">
+      <svg
+        width={width}
+        height={height}
+        role="img"
+        aria-label="Not enough data to chart a trend"
+      >
+        <text
+          x={width / 2}
+          y={height / 2}
+          textAnchor="middle"
+          fontSize="12"
+          fill="var(--color-text-muted)"
+        >
           Not enough data yet
         </text>
       </svg>
@@ -39,7 +50,9 @@ export function Sparkline({
     points.push({ x, y });
   });
 
-  const path = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+  const path = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
+    .join(" ");
   const areaPath = `${path} L ${points[points.length - 1]?.x} ${height} L ${points[0]?.x} ${height} Z`;
 
   return (
@@ -52,9 +65,22 @@ export function Sparkline({
       className="overflow-visible"
     >
       <path d={areaPath} fill={color} opacity={0.08} />
-      <path d={path} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={path}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       {points.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={i === points.length - 1 ? 3 : 0} fill={color} />
+        <circle
+          key={i}
+          cx={p.x}
+          cy={p.y}
+          r={i === points.length - 1 ? 3 : 0}
+          fill={color}
+        />
       ))}
     </svg>
   );

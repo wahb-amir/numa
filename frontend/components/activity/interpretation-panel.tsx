@@ -11,8 +11,13 @@ export function InterpretationPanel({ workout }: { workout: Workout }) {
     <Card className="border-accent-emerald/20 bg-accent-emerald-soft/30">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-accent-emerald" aria-hidden="true" />
-          <CardTitle className="text-accent-emerald">Numa&apos;s Interpretation</CardTitle>
+          <Sparkles
+            className="h-4 w-4 text-accent-emerald"
+            aria-hidden="true"
+          />
+          <CardTitle className="text-accent-emerald">
+            Numa&apos;s Interpretation
+          </CardTitle>
         </div>
       </CardHeader>
       <CardContent className="pt-0 space-y-4">
@@ -22,7 +27,9 @@ export function InterpretationPanel({ workout }: { workout: Workout }) {
             : `This session was in line with, or ahead of, your personal baseline, consistent with your recent recovery trend.`}
         </p>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Cross-referenced with</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+            Cross-referenced with
+          </p>
           <ul className="mt-2 space-y-1.5 text-sm text-text-secondary">
             <li>· Sleep duration over the prior 2 nights</li>
             <li>· 7-day rolling training load</li>
@@ -31,7 +38,9 @@ export function InterpretationPanel({ workout }: { workout: Workout }) {
         </div>
         <div className="flex items-center justify-between border-t border-border pt-3">
           <ConfidenceBadge level={slower ? "moderate" : "high"} />
-          <p className="text-xs italic text-text-muted">Possible contributor, not a confirmed cause</p>
+          <p className="text-xs italic text-text-muted">
+            Possible contributor, not a confirmed cause
+          </p>
         </div>
       </CardContent>
     </Card>

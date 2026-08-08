@@ -65,17 +65,17 @@ real API integration in this phase, per spec.
 
 ## What's implemented
 
-| Route | Notes |
-|---|---|
-| `/` | Hero, raw-vs-context problem statement, 4-month adaptation timeline, CTA |
-| `/dashboard` | Today's State card (score + trend + confidence), What Changed, one AI Insight |
-| `/today` | Full metric grid, reflection form (client island), 7-day table |
-| `/activity` | Workout list with baseline delta |
+| Route            | Notes                                                                          |
+| ---------------- | ------------------------------------------------------------------------------ |
+| `/`              | Hero, raw-vs-context problem statement, 4-month adaptation timeline, CTA       |
+| `/dashboard`     | Today's State card (score + trend + confidence), What Changed, one AI Insight  |
+| `/today`         | Full metric grid, reflection form (client island), 7-day table                 |
+| `/activity`      | Workout list with baseline delta                                               |
 | `/activity/[id]` | Objective + subjective metrics, Numa's Interpretation panel, scoped chat input |
-| `/insights` | Full structured reasoning cards for all detected patterns |
-| `/timeline` | Grouped chronological ledger across workouts, reflections, sleep, milestones |
-| `/reports` | Week-over-week comparison, 30-day trend, monthly summary |
-| `/chat` | Context Drawer + structured assistant responses (scripted, no live model call) |
+| `/insights`      | Full structured reasoning cards for all detected patterns                      |
+| `/timeline`      | Grouped chronological ledger across workouts, reflections, sleep, milestones   |
+| `/reports`       | Week-over-week comparison, 30-day trend, monthly summary                       |
+| `/chat`          | Context Drawer + structured assistant responses (scripted, no live model call) |
 
 ## Extending this prototype
 

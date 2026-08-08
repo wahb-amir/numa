@@ -13,22 +13,22 @@ import Link from "next/link";
 const ACTIVITY_LABEL: Record<ActivityType, string> = {
   running: "Run",
   cycling: "Ride",
-  gym:     "Gym",
-  other:   "Other",
+  gym: "Gym",
+  other: "Other",
 };
 
 const ACTIVITY_COLOR: Record<ActivityType, string> = {
   running: "text-accent-emerald bg-accent-emerald-soft",
   cycling: "text-accent-slate  bg-accent-slate-soft",
-  gym:     "text-status-attention bg-status-attention-soft",
-  other:   "text-text-muted bg-surface-sunken",
+  gym: "text-status-attention bg-status-attention-soft",
+  other: "text-text-muted bg-surface-sunken",
 };
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
     weekday: "short",
-    month:   "short",
-    day:     "numeric",
+    month: "short",
+    day: "numeric",
   });
 }
 
@@ -44,8 +44,8 @@ function formatDuration(seconds: number): string {
 
 export default function ActivityPage() {
   const [workouts, setWorkouts] = useState<ApiWorkout[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -53,7 +53,9 @@ export default function ActivityPage() {
         const { data } = await api.get<ApiWorkout[]>("/workouts?limit=50");
         setWorkouts(data);
       } catch {
-        setError("Could not load your workouts. Make sure the backend is running.");
+        setError(
+          "Could not load your workouts. Make sure the backend is running.",
+        );
       } finally {
         setLoading(false);
       }
@@ -68,8 +70,8 @@ export default function ActivityPage() {
           loading
             ? "Loading your sessions…"
             : error
-            ? "Error loading workouts"
-            : `${workouts.length} session${workouts.length !== 1 ? "s" : ""} logged`
+              ? "Error loading workouts"
+              : `${workouts.length} session${workouts.length !== 1 ? "s" : ""} logged`
         }
       />
       <div className="mx-auto max-w-3xl px-4 py-6 lg:px-8 lg:py-8">
@@ -123,7 +125,8 @@ export default function ActivityPage() {
                               {w.activity_type} session
                             </p>
                             <p className="text-xs text-text-muted">
-                              {formatDate(w.start_time)} · {formatDuration(w.duration_seconds)}
+                              {formatDate(w.start_time)} ·{" "}
+                              {formatDuration(w.duration_seconds)}
                             </p>
                           </div>
                         </div>

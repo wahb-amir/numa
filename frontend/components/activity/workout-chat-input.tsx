@@ -24,9 +24,13 @@ export function WorkoutChatInput({ workoutTitle }: { workoutTitle: string }) {
         <div className="mt-3 rounded-control border border-border bg-surface-raised p-3 text-sm">
           <p className="font-medium text-text-primary">&ldquo;{sent}&rdquo;</p>
           <p className="mt-2 text-text-secondary">
-            Numa would answer using this session&apos;s data plus your surrounding sleep and training
-            history — try the full conversation in{" "}
-            <a href="/chat" className="font-semibold text-accent-emerald hover:underline">
+            Numa would answer using this session&apos;s data plus your
+            surrounding sleep and training history — try the full conversation
+            in{" "}
+            <a
+              href="/chat"
+              className="font-semibold text-accent-emerald hover:underline"
+            >
               Chat
             </a>
             .

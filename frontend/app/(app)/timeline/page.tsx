@@ -22,12 +22,14 @@ function workoutsToTimeline(workouts: ApiWorkout[]): TimelineEvent[] {
       reflection?.effort_rating != null && reflection.effort_rating >= 8
         ? "attention"
         : reflection?.effort_rating != null && reflection.effort_rating <= 4
-        ? "positive"
-        : "info";
+          ? "positive"
+          : "info";
 
     return {
       id: w.id,
-      dateIndex: Math.floor((Date.now() - new Date(w.start_time).getTime()) / 86400000),
+      dateIndex: Math.floor(
+        (Date.now() - new Date(w.start_time).getTime()) / 86400000,
+      ),
       date: new Date(w.start_time),
       category: "workout" as TimelineEvent["category"],
       title: `${w.activity_type.charAt(0).toUpperCase() + w.activity_type.slice(1)} — ${mins} min`,
@@ -82,12 +84,15 @@ export default function TimelinePage() {
           setEvents(timeline);
         }
       } catch {
-        if (!cancelled) setError("Could not load timeline data from the server.");
+        if (!cancelled)
+          setError("Could not load timeline data from the server.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Group events by daysAgo
@@ -102,7 +107,10 @@ export default function TimelinePage() {
 
   return (
     <div>
-      <TopHeader title="Timeline" subtitle="A chronological ledger of everything Numa has logged" />
+      <TopHeader
+        title="Timeline"
+        subtitle="A chronological ledger of everything Numa has logged"
+      />
 
       {loading && <Skeleton />}
 
@@ -120,7 +128,9 @@ export default function TimelinePage() {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-emerald-soft">
               <Activity className="h-6 w-6 text-accent-emerald" />
             </div>
-            <h2 className="mt-5 text-lg font-semibold text-text-primary">Your timeline is empty</h2>
+            <h2 className="mt-5 text-lg font-semibold text-text-primary">
+              Your timeline is empty
+            </h2>
             <p className="mt-2 max-w-sm text-sm text-text-secondary">
               Every workout you upload will appear here in chronological order.
             </p>
@@ -140,7 +150,10 @@ export default function TimelinePage() {
           <ol className="relative border-l border-border pl-6">
             {sortedGroups.map(([daysAgo, dayEvents]) => (
               <li key={daysAgo} className="mb-8 last:mb-0">
-                <div className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full bg-accent-emerald" aria-hidden="true" />
+                <div
+                  className="absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full bg-accent-emerald"
+                  aria-hidden="true"
+                />
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
                   {formatDayLabel(daysAgo, dayEvents[0]!.date)}
                 </p>
@@ -155,10 +168,14 @@ export default function TimelinePage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-text-primary">{e.title}</p>
+                          <p className="text-sm font-semibold text-text-primary">
+                            {e.title}
+                          </p>
                           <StatusDot status={e.status} />
                         </div>
-                        <p className="mt-0.5 text-sm text-text-secondary">{e.detail}</p>
+                        <p className="mt-0.5 text-sm text-text-secondary">
+                          {e.detail}
+                        </p>
                       </div>
                     </li>
                   ))}

@@ -54,7 +54,11 @@ export function ChatInterface() {
   function send(question: string) {
     const trimmed = question.trim();
     if (!trimmed) return;
-    const userMsg: ChatMessageType = { id: `u-${Date.now()}`, role: "user", content: trimmed };
+    const userMsg: ChatMessageType = {
+      id: `u-${Date.now()}`,
+      role: "user",
+      content: trimmed,
+    };
     setMessages((prev) => [...prev, userMsg]);
     setValue("");
     setIsThinking(true);
@@ -132,7 +136,11 @@ export function ChatInterface() {
             placeholder="Ask about a trend, workout, or how you're feeling..."
             className="flex-1 rounded-control border border-border-strong bg-surface-base px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus-visible:outline-none min-h-[44px]"
           />
-          <Button type="submit" aria-label="Send message" disabled={!value.trim()}>
+          <Button
+            type="submit"
+            aria-label="Send message"
+            disabled={!value.trim()}
+          >
             <Send className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>

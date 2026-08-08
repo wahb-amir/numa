@@ -11,7 +11,8 @@ export function CtaSection() {
             Start understanding your data, not just collecting it.
           </h2>
           <p className="mx-auto mt-3 max-w-prose text-base leading-relaxed text-text-secondary sm:mt-4 sm:text-lg">
-            Numa is a context layer for the data you already have — not another diagnosis engine.
+            Numa is a context layer for the data you already have — not another
+            diagnosis engine.
           </p>
           <Link
             href="/dashboard"
@@ -23,8 +24,8 @@ export function CtaSection() {
         </div>
       </Reveal>
       <footer className="border-t border-border px-4 py-8 text-center text-xs text-text-muted sm:px-6 lg:px-8">
-        Numa surfaces patterns in your personal data for informational purposes only and is not a
-        medical device or diagnostic tool.
+        Numa surfaces patterns in your personal data for informational purposes
+        only and is not a medical device or diagnostic tool.
       </footer>
     </section>
   );

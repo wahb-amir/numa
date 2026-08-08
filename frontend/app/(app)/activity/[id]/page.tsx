@@ -15,9 +15,9 @@ import type { ApiWorkout } from "@/lib/types";
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
     weekday: "long",
-    month:   "long",
-    day:     "numeric",
-    year:    "numeric",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
   });
 }
 
@@ -38,9 +38,9 @@ export default function ActivityDetailPage({
 }) {
   const { id } = use(params);
 
-  const [workout, setWorkout]   = useState<ApiWorkout | null>(null);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState<string | null>(null);
+  const [workout, setWorkout] = useState<ApiWorkout | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [notFoundFlag, setNotFoundFlag] = useState(false);
 
   useEffect(() => {
@@ -50,7 +50,8 @@ export default function ActivityDetailPage({
         const { data } = await api.get<ApiWorkout>(`/workouts/${id}`);
         setWorkout(data);
       } catch (err: unknown) {
-        const status = (err as { response?: { status?: number } })?.response?.status;
+        const status = (err as { response?: { status?: number } })?.response
+          ?.status;
         if (status === 404) {
           setNotFoundFlag(true);
         } else {
@@ -73,8 +74,8 @@ export default function ActivityDetailPage({
           loading
             ? "Loading…"
             : workout
-            ? `${workout.activity_type.charAt(0).toUpperCase() + workout.activity_type.slice(1)} Session`
-            : "Activity"
+              ? `${workout.activity_type.charAt(0).toUpperCase() + workout.activity_type.slice(1)} Session`
+              : "Activity"
         }
         subtitle={workout ? formatDate(workout.start_time) : ""}
       />
@@ -120,7 +121,9 @@ export default function ActivityDetailPage({
                   />
                   {/* Render any extra numeric metrics from the metrics JSONB */}
                   {Object.entries(workout.metrics ?? {})
-                    .filter(([, v]) => typeof v === "number" || typeof v === "string")
+                    .filter(
+                      ([, v]) => typeof v === "number" || typeof v === "string",
+                    )
                     .map(([key, val]) => (
                       <MetricStat
                         key={key}
@@ -161,7 +164,9 @@ export default function ActivityDetailPage({
                   </div>
                   {reflection.notes && (
                     <div>
-                      <p className="text-xs font-medium text-text-muted">Your notes</p>
+                      <p className="text-xs font-medium text-text-muted">
+                        Your notes
+                      </p>
                       <p className="mt-1 text-sm italic text-text-secondary">
                         &ldquo;{reflection.notes}&rdquo;
                       </p>

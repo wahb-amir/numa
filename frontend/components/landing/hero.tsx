@@ -26,15 +26,17 @@ export function Hero() {
           <Reveal delay={0.08}>
             <h1 className="mt-5 text-3xl font-bold leading-[1.1] tracking-tight text-text-primary sm:text-display-lg lg:text-display-xl">
               Your health data tells you what happened.
-              <span className="block text-accent-emerald">Numa helps you understand why.</span>
+              <span className="block text-accent-emerald">
+                Numa helps you understand why.
+              </span>
             </h1>
           </Reveal>
 
           <Reveal delay={0.16}>
             <p className="mt-5 max-w-prose text-base leading-relaxed text-text-secondary sm:mt-6 sm:text-lg">
-              Numa synthesizes your wearable data, workouts, and how you actually felt into one
-              evolving timeline — then reasons over it with the care of a good coach, not a black
-              box.
+              Numa synthesizes your wearable data, workouts, and how you
+              actually felt into one evolving timeline — then reasons over it
+              with the care of a good coach, not a black box.
             </p>
           </Reveal>
 
@@ -47,7 +49,9 @@ export function Hero() {
                 Start with Numa
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
-              <p className="text-xs text-text-muted">Surfaces patterns to explore, not diagnoses.</p>
+              <p className="text-xs text-text-muted">
+                Surfaces patterns to explore, not diagnoses.
+              </p>
             </div>
           </Reveal>
 
@@ -55,7 +59,9 @@ export function Hero() {
             <dl className="mt-9 grid grid-cols-1 gap-4 border-t border-border pt-6 sm:grid-cols-3 sm:gap-6">
               {QUICK_FACTS.map((f) => (
                 <div key={f.label}>
-                  <dt className="text-sm font-semibold text-text-primary">{f.label}</dt>
+                  <dt className="text-sm font-semibold text-text-primary">
+                    {f.label}
+                  </dt>
                   <dd className="mt-0.5 text-xs text-text-muted">{f.detail}</dd>
                 </div>
               ))}
@@ -72,16 +78,21 @@ export function Hero() {
               <StatusChip status="positive">Well recovered</StatusChip>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-editorial-num tabular text-text-primary">78</span>
+              <span className="text-editorial-num tabular text-text-primary">
+                78
+              </span>
               <span className="text-sm text-text-muted">/ 100 recovery</span>
             </div>
             <div className="mt-4">
               <Sparkline data={PREVIEW_TREND} height={64} />
             </div>
             <div className="mt-4 rounded-control border border-accent-emerald/20 bg-accent-emerald-soft/50 p-3">
-              <p className="text-xs font-semibold text-accent-emerald">Numa Insight</p>
+              <p className="text-xs font-semibold text-accent-emerald">
+                Numa Insight
+              </p>
               <p className="mt-1 text-xs leading-relaxed text-text-secondary">
-                Your heat tolerance on runs appears to have improved steadily over the last 4 months.
+                Your heat tolerance on runs appears to have improved steadily
+                over the last 4 months.
               </p>
             </div>
           </div>

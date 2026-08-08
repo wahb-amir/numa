@@ -19,7 +19,9 @@ export function AIInsightCard({ insight }: { insight: Insight }) {
             <h3 className="mt-1 text-base font-semibold leading-snug text-text-primary">
               {insight.title}
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-text-secondary">{insight.observation}</p>
+            <p className="mt-2 text-sm leading-relaxed text-text-secondary">
+              {insight.observation}
+            </p>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <ConfidenceBadge level={insight.confidence} />
               <Link

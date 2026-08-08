@@ -17,8 +17,9 @@ export function AdaptationTimeline() {
             Built to notice slow change
           </h2>
           <p className="mt-3 text-base leading-relaxed text-text-secondary sm:mt-4 sm:text-lg">
-            Some of the most important patterns unfold over months, not days. Numa compares you
-            against your own history — never a generic demographic average.
+            Some of the most important patterns unfold over months, not days.
+            Numa compares you against your own history — never a generic
+            demographic average.
           </p>
         </Reveal>
 
@@ -33,8 +34,12 @@ export function AdaptationTimeline() {
             <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               {MONTHS.map((m) => (
                 <div key={m.label} className="border-t border-border pt-3">
-                  <p className="text-xs font-semibold text-text-primary">{m.label}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-text-muted">{m.note}</p>
+                  <p className="text-xs font-semibold text-text-primary">
+                    {m.label}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-text-muted">
+                    {m.note}
+                  </p>
                 </div>
               ))}
             </div>

@@ -1,5 +1,5 @@
-import { Redis } from 'ioredis';
-import { env } from './env';
+import { Redis } from "ioredis";
+import { env } from "./env";
 
 export const redisConnection = new Redis({
   host: env.REDIS_HOST,
@@ -7,4 +7,3 @@ export const redisConnection = new Redis({
   password: env.REDIS_PASSWORD || undefined,
   maxRetriesPerRequest: null,
 });
-

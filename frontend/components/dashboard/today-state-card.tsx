@@ -52,10 +52,10 @@ export function TodayStateCard({ today, recent }: Props) {
                 {status === "positive"
                   ? "Well recovered"
                   : status === "attention"
-                  ? "Moderate recovery"
-                  : status === "concerning"
-                  ? "Recovery is low"
-                  : "No data logged"}
+                    ? "Moderate recovery"
+                    : status === "concerning"
+                      ? "Recovery is low"
+                      : "No data logged"}
               </StatusChip>
             </div>
             <div className="mt-4">
@@ -64,7 +64,9 @@ export function TodayStateCard({ today, recent }: Props) {
           </div>
 
           <div className="min-w-[180px] flex-1 sm:max-w-xs">
-            <p className="mb-2 text-xs font-medium text-text-muted">14-day trend</p>
+            <p className="mb-2 text-xs font-medium text-text-muted">
+              14-day trend
+            </p>
             <Sparkline data={trend} height={64} />
           </div>
         </div>
@@ -73,19 +75,28 @@ export function TodayStateCard({ today, recent }: Props) {
           <div>
             <dt className="text-xs text-text-muted">Resting HR</dt>
             <dd className="tabular font-semibold text-text-primary">
-              {today.restingHR ?? "—"} {today.restingHR && <span className="text-xs font-normal text-text-muted">bpm</span>}
+              {today.restingHR ?? "—"}{" "}
+              {today.restingHR && (
+                <span className="text-xs font-normal text-text-muted">bpm</span>
+              )}
             </dd>
           </div>
           <div>
             <dt className="text-xs text-text-muted">HRV</dt>
             <dd className="tabular font-semibold text-text-primary">
-              {today.hrv ?? "—"} {today.hrv && <span className="text-xs font-normal text-text-muted">ms</span>}
+              {today.hrv ?? "—"}{" "}
+              {today.hrv && (
+                <span className="text-xs font-normal text-text-muted">ms</span>
+              )}
             </dd>
           </div>
           <div>
             <dt className="text-xs text-text-muted">Sleep</dt>
             <dd className="tabular font-semibold text-text-primary">
-              {today.sleepHours ?? "—"} {today.sleepHours && <span className="text-xs font-normal text-text-muted">hrs</span>}
+              {today.sleepHours ?? "—"}{" "}
+              {today.sleepHours && (
+                <span className="text-xs font-normal text-text-muted">hrs</span>
+              )}
             </dd>
           </div>
         </dl>

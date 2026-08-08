@@ -18,8 +18,13 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
     <div className="flex justify-start">
       <div className="max-w-[92%] rounded-card border border-border bg-surface-raised shadow-elevation-1">
         <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-          <Sparkles className="h-3.5 w-3.5 text-accent-emerald" aria-hidden="true" />
-          <span className="text-xs font-semibold text-text-secondary">Numa</span>
+          <Sparkles
+            className="h-3.5 w-3.5 text-accent-emerald"
+            aria-hidden="true"
+          />
+          <span className="text-xs font-semibold text-text-secondary">
+            Numa
+          </span>
         </div>
         <div className="space-y-3 px-4 py-3.5">
           {message.observation && (
@@ -27,7 +32,9 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
               <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
                 Observation
               </p>
-              <p className="mt-1 text-sm leading-relaxed text-text-primary">{message.observation}</p>
+              <p className="mt-1 text-sm leading-relaxed text-text-primary">
+                {message.observation}
+              </p>
             </div>
           )}
           {message.evidence && message.evidence.length > 0 && (
@@ -37,8 +44,14 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
               </p>
               <ul className="mt-1 space-y-1">
                 {message.evidence.map((e, i) => (
-                  <li key={i} className="flex gap-2 text-sm leading-relaxed text-text-secondary">
-                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-text-muted" aria-hidden="true" />
+                  <li
+                    key={i}
+                    className="flex gap-2 text-sm leading-relaxed text-text-secondary"
+                  >
+                    <span
+                      className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-text-muted"
+                      aria-hidden="true"
+                    />
                     {e}
                   </li>
                 ))}
@@ -52,15 +65,25 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
               </p>
               <ul className="mt-1 space-y-1">
                 {message.alternatives.map((a, i) => (
-                  <li key={i} className="flex gap-2 text-sm leading-relaxed text-text-secondary">
-                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-text-muted" aria-hidden="true" />
+                  <li
+                    key={i}
+                    className="flex gap-2 text-sm leading-relaxed text-text-secondary"
+                  >
+                    <span
+                      className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-text-muted"
+                      aria-hidden="true"
+                    />
                     {a}
                   </li>
                 ))}
               </ul>
             </div>
           )}
-          {!message.observation && <p className="text-sm leading-relaxed text-text-primary">{message.content}</p>}
+          {!message.observation && (
+            <p className="text-sm leading-relaxed text-text-primary">
+              {message.content}
+            </p>
+          )}
           {message.confidence && (
             <div className={cn("border-t border-border pt-2.5")}>
               <ConfidenceBadge level={message.confidence} />
