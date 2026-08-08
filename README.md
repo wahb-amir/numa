@@ -8,8 +8,8 @@ entire hierarchy through weight and line-height rather than mixed font families.
 ## Setup
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Open http://localhost:3000. The `/` route is the marketing landing page; everything else lives
@@ -19,8 +19,8 @@ behind the persistent app shell at `/dashboard`, `/today`, `/activity`, `/insigh
 To verify a production build:
 
 ```bash
-npm run build
-npm start
+pnpm run build
+pnpm start
 ```
 
 All data is local, deterministic mock data (`lib/mock-data.ts`) — there is no backend, auth, or
