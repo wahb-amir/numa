@@ -1,0 +1,12 @@
+packages:
+  - "frontend"
+  - "backend"
+  - "data-gen"
+
+allowBuilds:
+  '0': esbuild
+  '1': msgpackr-extract
+  '2': unrs-resolver
+  esbuild: true
+  msgpackr-extract: true
+  unrs-resolver: true
