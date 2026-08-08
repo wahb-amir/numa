@@ -1,52 +1,51 @@
 import { Router } from 'express';
-import multer from 'multer';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { supabase } from '../config/supabase';
 import { uploadQueue } from '../jobs/queues';
 
 export const uploadRouter = Router();
 
-const upload = multer({ storage: multer.memoryStorage() });
-
-uploadRouter.post('/', requireAuth, upload.single('file'), async (req: AuthenticatedRequest, res) => {
+// ---------------------------------------------------------------------------
+// POST /uploads/sign
+// Generate a signed upload URL so the frontend can PUT a file directly to
+// Supabase Storage without routing the bytes through the backend.
+// Body: { filename: string }
+// Returns: { signedUrl: string, uploadId: string, fileKey: string }
+// ---------------------------------------------------------------------------
+uploadRouter.post('/sign', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    const file = req.file;
-    if (!file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    const { filename } = req.body as { filename?: string };
+    if (!filename || typeof filename !== 'string') {
+      return res.status(400).json({ error: 'filename is required' });
+    }
+
+    const fileExt = filename.split('.').pop()?.toLowerCase() ?? '';
+    if (!['csv', 'gpx'].includes(fileExt)) {
+      return res.status(400).json({
+        error: 'Unsupported file type. Only CSV and GPX files are allowed.',
+      });
     }
 
     const userId = req.user!.id;
-    const originalFilename = file.originalname;
-    const fileExt = originalFilename.split('.').pop()?.toLowerCase() || '';
-    
-    if (!['csv', 'gpx'].includes(fileExt)) {
-      return res.status(400).json({ error: 'Unsupported file type. Only CSV and GPX are allowed.' });
-    }
+    const fileKey = `${userId}/${Date.now()}_${filename}`;
 
-    const fileKey = `${userId}/${Date.now()}_${originalFilename}`;
-
-    // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // Create a signed upload URL (the frontend will PUT directly to this URL)
+    const { data: signedData, error: signError } = await supabase.storage
       .from('raw-uploads')
-      .upload(fileKey, file.buffer, {
-        contentType: file.mimetype,
-      });
+      .createSignedUploadUrl(fileKey);
 
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError);
-      return res.status(500).json({ error: 'Failed to upload file to storage' });
+    if (signError || !signedData) {
+      console.error('Signed URL error:', signError);
+      return res.status(500).json({ error: 'Failed to generate upload URL' });
     }
 
-    // Insert to raw_uploads table using the admin client because the user might not have
-    // an active session in the backend context if we only have the token for RLS. 
-    // Actually, we can use standard insert with service key or try to pass token.
-    // We will use service key for this background job orchestration.
+    // Record the pending upload in the database so we can track it
     const { data: dbData, error: dbError } = await supabase
       .from('raw_uploads')
       .insert({
         user_id: userId,
         file_key: fileKey,
-        original_filename: originalFilename,
+        original_filename: filename,
         file_type: fileExt,
         upload_status: 'pending',
       })
@@ -58,24 +57,68 @@ uploadRouter.post('/', requireAuth, upload.single('file'), async (req: Authentic
       return res.status(500).json({ error: 'Failed to record upload in database' });
     }
 
-    // Enqueue job
-    await uploadQueue.add('processUpload', {
-      uploadId: dbData.id,
-      userId,
+    return res.status(200).json({
+      signedUrl: signedData.signedUrl,
+      token: signedData.token,
       fileKey,
-      fileType: fileExt
-    });
-
-    return res.status(202).json({
-      message: 'Upload accepted and processing started',
-      uploadId: dbData.id
+      uploadId: dbData.id,
     });
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Sign upload error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
+// ---------------------------------------------------------------------------
+// POST /uploads/:id/complete
+// Called by the frontend after it has successfully PUT the file to Supabase.
+// Enqueues the background processing job.
+// ---------------------------------------------------------------------------
+uploadRouter.post('/:id/complete', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    // Look up the upload, verifying ownership
+    const { data: upload, error: fetchError } = await supabase
+      .from('raw_uploads')
+      .select('id, file_key, file_type, upload_status')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError || !upload) {
+      return res.status(404).json({ error: 'Upload not found' });
+    }
+
+    if (upload.upload_status !== 'pending') {
+      return res.status(409).json({
+        error: `Upload is already in status '${upload.upload_status}'`,
+      });
+    }
+
+    // Enqueue processing job
+    await uploadQueue.add('processUpload', {
+      uploadId: upload.id,
+      userId,
+      fileKey: upload.file_key,
+      fileType: upload.file_type,
+    });
+
+    return res.status(202).json({
+      message: 'Processing started',
+      uploadId: upload.id,
+    });
+  } catch (error) {
+    console.error('Complete upload error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /uploads/:id/status
+// Poll the processing status of a given upload.
+// ---------------------------------------------------------------------------
 uploadRouter.get('/:id/status', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
