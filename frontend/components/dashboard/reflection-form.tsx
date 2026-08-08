@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 
 const EFFORT_LABELS = ["Very light", "Light", "Moderate", "Somewhat hard", "Hard", "Very hard"];
 
@@ -11,10 +12,26 @@ export function ReflectionForm() {
   const [note, setNote] = useState("");
   const [effort, setEffort] = useState(3);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitted(true);
+    setLoading(true);
+    setError(null);
+    try {
+      // Hardcoded workout ID for now, since this component doesn't take props yet
+      const dummyWorkoutId = "00000000-0000-0000-0000-000000000000"; 
+      await api.post(`/workouts/${dummyWorkoutId}/reflection`, {
+        effort_rating: effort,
+        notes: note
+      });
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Failed to save reflection");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -34,6 +51,11 @@ export function ReflectionForm() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="rounded bg-red-100 p-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
             <div>
               <label htmlFor="reflection-note" className="text-sm font-medium text-text-primary">
                 How did today feel?
@@ -80,7 +102,10 @@ export function ReflectionForm() {
               <p className="mt-1 text-xs text-text-muted">{EFFORT_LABELS[effort - 1]}</p>
             </fieldset>
 
-            <Button type="submit">Save reflection</Button>
+            <Button type="submit" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save reflection
+            </Button>
           </form>
         )}
       </CardContent>
