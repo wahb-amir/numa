@@ -1,0 +1,18 @@
+# Row 1: Normal valid row (baseline)
+# Row 2: IMPLAUSIBLE HR — avg_hr=250 should be flagged (status=flagged)
+# Row 3: MISSING DURATION — empty duration_seconds should reject/skip this row
+# Row 4: EXACT DUPLICATE of Row 1 — second insert should be skipped (dedup)
+# Row 5: Normal valid row
+# Row 6: POSSIBLE MILES — 16.09 km in 45 min implies pace=2.78 min/km (~21.6 mph)
+#         This is physiologically suspicious for a recreational runner at HR=150.
+#         Flag for review or attempt unit detection.
+# Row 7: Normal valid row — pipeline should resume after bad rows
+
+date,activity_type,duration_seconds,distance_km,avg_hr,max_hr,avg_pace_min_km,calories,elevation_gain_m
+2024-06-01,running,2700,8.2,152,171,5.49,380,42
+2024-06-03,running,2880,9.1,250,270,5.28,410,38
+2024-06-05,running,,8.8,158,176,5.41,395,31
+2024-06-01,running,2700,8.2,152,171,5.49,380,42
+2024-06-07,running,3120,10.4,155,174,5.00,465,55
+2024-06-08,running,2700,16.09,150,169,2.78,490,40
+2024-06-10,running,2580,7.9,149,168,5.44,360,28
