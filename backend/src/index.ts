@@ -1,11 +1,15 @@
 import express from "express";
 import cors from "cors";
+import morgan from "morgan";
 import { env } from "./config/env";
 import { uploadRouter } from "./routes/uploads";
 import { workoutRouter } from "./routes/workouts";
 import { userRouter } from "./routes/users";
+import { logger } from "./utils/logger";
 
 const app = express();
+
+app.use(morgan("dev"));
 
 app.use(cors({ origin: env.FRONTEND_URL }));
 app.use(express.json());
@@ -20,5 +24,5 @@ app.get("/health", (req, res) => {
 });
 
 app.listen(env.PORT, () => {
-  console.log(`Server running on port ${env.PORT}`);
+  logger.info(`Server running on port ${env.PORT}`);
 });
