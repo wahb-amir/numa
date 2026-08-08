@@ -15,9 +15,27 @@ export const metadata: Metadata = {
     "Numa synthesizes wearable data, reflections, and training history into context you can trust.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" className={publicSans.variable}>
+      <link
+        rel="icon"
+        type="image/png"
+        href="/favicon-96x96.png"
+        sizes="96x96"
+      />
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+      <link rel="shortcut icon" href="/favicon.ico" />
+      <link
+        rel="apple-touch-icon"
+        sizes="180x180"
+        href="/apple-touch-icon.png"
+      />
+      <link rel="manifest" href="/site.webmanifest" />
       <body className="font-sans antialiased">
         <a
           href="#main-content"

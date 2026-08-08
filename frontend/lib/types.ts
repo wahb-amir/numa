@@ -60,3 +60,49 @@ export interface ChatMessage {
   alternatives?: string[];
   contextUsed?: string[];
 }
+
+// ─── Backend API types (real data from the Express server) ────────────────────
+
+export type ActivityType = 'running' | 'cycling' | 'gym' | 'other';
+export type EnergyLevel = 'low' | 'normal' | 'high';
+
+export interface ApiWorkout {
+  id: string;
+  user_id: string;
+  activity_type: ActivityType;
+  source: 'manual' | 'csv' | 'gpx';
+  source_file_ref: string | null;
+  start_time: string; // ISO date string
+  duration_seconds: number;
+  metrics: Record<string, unknown>;
+  raw_metrics: Record<string, unknown> | null;
+  ingested_at: string;
+  fingerprint: string;
+  status: 'valid' | 'flagged' | 'needs_review';
+  reflections?: ApiReflection[];
+}
+
+export interface ApiReflection {
+  id: string;
+  workout_id: string;
+  user_id: string;
+  effort_rating: number | null;  // 1-10
+  energy_level: EnergyLevel | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface ApiBaseline {
+  id: string;
+  user_id: string;
+  activity_type: ActivityType;
+  metric_name: string;   // e.g. 'avg_hr', 'avg_pace_sec_per_km', 'avg_duration_seconds'
+  value: number;
+  sample_count: number;
+  computed_at: string;
+}
+
+export interface ApiUploadStatus {
+  upload_status: 'pending' | 'processing' | 'complete' | 'failed';
+  error_message: string | null;
+}
