@@ -6,6 +6,7 @@ import { env } from "./config/env";
 import { uploadRouter } from "./routes/uploads";
 import { workoutRouter } from "./routes/workouts";
 import { userRouter } from "./routes/users";
+import { authRouter } from "./routes/auth";
 import { logger } from "./utils/logger";
 // Side-effect import: registers the BullMQ Worker that processes uploads.
 import "./jobs/workers/processUploadWorker";
@@ -22,6 +23,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/uploads", uploadRouter);
 app.use("/api/workouts", workoutRouter);
 app.use("/api/users", userRouter);
+app.use("/api/auth", authRouter);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
