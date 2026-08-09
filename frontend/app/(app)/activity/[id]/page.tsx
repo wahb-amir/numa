@@ -29,6 +29,37 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+// Metric keys whose stored value is already a whole-second integer.
+// Rendered without decimals so "328 sec/km" doesn't read as "328.0 sec/km".
+const INTEGER_METRIC_KEYS = new Set([
+  "avg_pace_sec_per_km",
+  "avg_pace_sec_per_mile",
+  "avg_duration_seconds",
+  "duration_seconds",
+  "resting_hr",
+  "avg_hr",
+  "max_hr",
+  "min_hr",
+  "calories",
+  "steps",
+]);
+
+/**
+ * Round a metric value for display so JSONB numbers like
+ * `328.4271834` or `4.7999999` don't overflow the metric tile.
+ *   - Integers stay integers (`62` → `62`).
+ *   - Fractional values round to 2 decimals, trimming trailing zeros
+ *     (`4.80` → `4.8`, `4.7999999` → `4.8`).
+ *   - Whole-second metrics stay as whole seconds regardless of trailing
+ *     float noise from the parser.
+ */
+function formatMetric(value: number, key: string): number {
+  if (!Number.isFinite(value)) return value;
+  if (INTEGER_METRIC_KEYS.has(key)) return Math.round(value);
+  // toFixed(2) gives a string; Number() drops trailing zeros.
+  return Number(value.toFixed(2));
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ActivityDetailPage({
@@ -121,16 +152,14 @@ export default function ActivityDetailPage({
                   />
                   {/* Render any extra numeric metrics from the metrics JSONB */}
                   {Object.entries(workout.metrics ?? {})
-                    .filter(
-                      ([, v]) => typeof v === "number" || typeof v === "string",
-                    )
+                    .filter(([, v]) => typeof v === "number")
                     .map(([key, val]) => (
                       <MetricStat
                         key={key}
                         label={key
                           .replace(/_/g, " ")
                           .replace(/\b\w/g, (c) => c.toUpperCase())}
-                        value={val as string | number}
+                        value={formatMetric(val as number, key)}
                       />
                     ))}
                 </div>
