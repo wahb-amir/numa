@@ -8,6 +8,7 @@ import {
   FileBarChart,
   MessageSquare,
   CloudUpload,
+  UserCircle,
 } from "lucide-react";
 
 export interface NavItem {
@@ -65,6 +66,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Chat",
     icon: MessageSquare,
     description: "Ask Numa",
+  },
+  {
+    href: "/profile",
+    label: "Profile",
+    icon: UserCircle,
+    description: "Account & preferences",
   },
 ];
 

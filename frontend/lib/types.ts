@@ -106,3 +106,24 @@ export interface ApiUploadStatus {
   upload_status: "pending" | "processing" | "complete" | "failed";
   error_message: string | null;
 }
+
+export interface ApiAuthUser {
+  id: string;
+  email: string;
+  phone?: string | null;
+  created_at: string;
+  last_sign_in_at?: string | null;
+  app_metadata: Record<string, unknown>;
+  user_metadata: Record<string, unknown>;
+}
+
+export interface ApiProfile {
+  id: string;
+  email: string;
+  created_at: string;
+  last_sign_in_at: string | null;
+  display_name: string;
+  units: "metric" | "imperial";
+  profile_exists: boolean;
+  updated_at: string | null;
+}

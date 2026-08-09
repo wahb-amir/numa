@@ -11,6 +11,59 @@ import type {
   ActivityType,
 } from "./types";
 
+// ─── Auth / Session ──────────────────────────────────────────────────────────
+
+export interface ApiAuthUser {
+  id: string;
+  email: string;
+  phone?: string | null;
+  created_at: string;
+  last_sign_in_at?: string | null;
+  app_metadata: Record<string, unknown>;
+  user_metadata: Record<string, unknown>;
+}
+
+export interface ApiProfile {
+  id: string;
+  email: string;
+  created_at: string;
+  last_sign_in_at: string | null;
+  display_name: string;
+  units: "metric" | "imperial";
+  profile_exists: boolean;
+  updated_at: string | null;
+}
+
+export interface ProfileUpdatePayload {
+  display_name?: string;
+  units?: "metric" | "imperial";
+}
+
+export async function getMe(): Promise<ApiAuthUser> {
+  const { data } = await api.get<ApiAuthUser>("/auth/me");
+  return data;
+}
+
+export async function getProfile(): Promise<ApiProfile> {
+  const { data } = await api.get<ApiProfile>("/users/me");
+  return data;
+}
+
+export async function updateProfile(
+  payload: ProfileUpdatePayload,
+): Promise<ApiProfile> {
+  const { data } = await api.patch<ApiProfile>("/users/me", payload);
+  return data;
+}
+
+export async function logoutSession(): Promise<void> {
+  // Tells the backend to revoke the JWT + refresh token globally. We do
+  // NOT clear the local Supabase session here — the caller (logout hook)
+  // does that so the two paths are independent and either can succeed
+  // without the other.
+  await api.post("/auth/logout");
+}
+
 // ─── Workouts ────────────────────────────────────────────────────────────────
 
 export async function getWorkouts(
