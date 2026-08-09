@@ -1,3 +1,4 @@
+import http from "http";
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
@@ -6,6 +7,9 @@ import { uploadRouter } from "./routes/uploads";
 import { workoutRouter } from "./routes/workouts";
 import { userRouter } from "./routes/users";
 import { logger } from "./utils/logger";
+// Side-effect import: registers the BullMQ Worker that processes uploads.
+import "./jobs/workers/processUploadWorker";
+import { attachWss } from "./server/wss";
 
 const app = express();
 
@@ -19,10 +23,18 @@ app.use("/api/uploads", uploadRouter);
 app.use("/api/workouts", workoutRouter);
 app.use("/api/users", userRouter);
 
-app.get("/health", (req, res) => {
+app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-app.listen(env.PORT, () => {
-  logger.info(`Server running on port ${env.PORT}`);
+// Hugging Face Spaces (and most single-port hosts) only expose one port.
+// We must share that port between HTTP and WebSocket upgrades, so we build
+// the http.Server explicitly and hand it to both express and the WSS layer.
+const httpServer = http.createServer(app);
+attachWss(httpServer);
+
+httpServer.listen(env.PORT, () => {
+  logger.info(
+    `Server + upload worker + WSS running on port ${env.PORT}`,
+  );
 });
