@@ -42,6 +42,30 @@ const INTEGER_METRIC_KEYS = new Set([
   "min_hr",
   "calories",
   "steps",
+  "Avg Heart Rate",
+  "Max Heart Rate",
+  "Resting Hr",
+  "Min Hr",
+]);
+
+// Keys that are intentionally whole numbers (HR, steps, second counts).
+// We compare against the human-readable label so the policy matches what
+// the user sees, not the snake_case key from the parser.
+const INTEGER_METRIC_LABELS = new Set([
+  "Avg Heart Rate",
+  "Max Heart Rate",
+  "Resting Heart Rate",
+  "Min Heart Rate",
+  "Resting Hr",
+  "Avg Hr",
+  "Max Hr",
+  "Min Hr",
+  "Calories",
+  "Steps",
+  "Avg Pace Sec Per Km",
+  "Avg Pace Sec Per Mile",
+  "Avg Duration Seconds",
+  "Duration Seconds",
 ]);
 
 /**
@@ -50,12 +74,16 @@ const INTEGER_METRIC_KEYS = new Set([
  *   - Integers stay integers (`62` → `62`).
  *   - Fractional values round to 2 decimals, trimming trailing zeros
  *     (`4.80` → `4.8`, `4.7999999` → `4.8`).
- *   - Whole-second metrics stay as whole seconds regardless of trailing
- *     float noise from the parser.
+ *   - Whole-second / count metrics stay as whole numbers regardless of
+ *     trailing float noise from the parser.
+ *
+ * The key argument is the human-readable label (the value already shown
+ * to the user); it lets the integer policy match the rendered name
+ * regardless of the underlying JSONB snake_case key.
  */
-function formatMetric(value: number, key: string): number {
+function formatMetric(value: number, label: string): number {
   if (!Number.isFinite(value)) return value;
-  if (INTEGER_METRIC_KEYS.has(key)) return Math.round(value);
+  if (INTEGER_METRIC_LABELS.has(label)) return Math.round(value);
   // toFixed(2) gives a string; Number() drops trailing zeros.
   return Number(value.toFixed(2));
 }
@@ -152,16 +180,30 @@ export default function ActivityDetailPage({
                   />
                   {/* Render any extra numeric metrics from the metrics JSONB */}
                   {Object.entries(workout.metrics ?? {})
-                    .filter(([, v]) => typeof v === "number")
-                    .map(([key, val]) => (
-                      <MetricStat
-                        key={key}
-                        label={key
-                          .replace(/_/g, " ")
-                          .replace(/\b\w/g, (c) => c.toUpperCase())}
-                        value={formatMetric(val as number, key)}
-                      />
-                    ))}
+                    .map(([key, raw]) => {
+                      // Accept numbers and numeric strings — Supabase JSONB
+                      // sometimes returns numeric values as strings when
+                      // they were stored via the postgres ::text cast.
+                      const num =
+                        typeof raw === "number"
+                          ? raw
+                          : typeof raw === "string" &&
+                              raw.trim() !== "" &&
+                              Number.isFinite(Number(raw))
+                            ? Number(raw)
+                            : null;
+                      if (num === null) return null;
+                      const label = key
+                        .replace(/_/g, " ")
+                        .replace(/\b\w/g, (c) => c.toUpperCase());
+                      return (
+                        <MetricStat
+                          key={key}
+                          label={label}
+                          value={formatMetric(num, label)}
+                        />
+                      );
+                    })}
                 </div>
               </CardContent>
             </Card>
