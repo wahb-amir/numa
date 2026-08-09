@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { formatDayLabel } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 import type { Workout } from "@/lib/types";
+import { useUnits } from "@/lib/units-context";
+import { formatDistance, formatDuration } from "@/lib/units";
 
 const TYPE_LABEL_COLOR: Record<Workout["type"], string> = {
   Run: "text-accent-emerald bg-accent-emerald-soft",
@@ -12,6 +16,7 @@ const TYPE_LABEL_COLOR: Record<Workout["type"], string> = {
 };
 
 export function ActivityListItem({ workout }: { workout: Workout }) {
+  const { units } = useUnits();
   const delta = workout.baselineDeltaPct;
   return (
     <li>
@@ -30,8 +35,11 @@ export function ActivityListItem({ workout }: { workout: Workout }) {
               {workout.title}
             </p>
             <p className="text-xs text-text-muted">
-              {formatDayLabel(workout.dateIndex)} · {workout.durationMin} min
-              {workout.distanceKm ? ` · ${workout.distanceKm} km` : ""}
+              {formatDayLabel(workout.dateIndex)} ·{" "}
+              {formatDuration(workout.durationMin, units)}
+              {workout.distanceKm
+                ? ` · ${formatDistance(workout.distanceKm, units)}`
+                : ""}
             </p>
           </div>
         </div>
