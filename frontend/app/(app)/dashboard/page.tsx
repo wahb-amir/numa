@@ -7,10 +7,10 @@ import { TopHeader } from "@/components/shell/top-header";
 import { TodayStateCard } from "@/components/dashboard/today-state-card";
 import { WhatChanged } from "@/components/dashboard/what-changed";
 import { AIInsightCard } from "@/components/dashboard/ai-insight-card";
-import { getWorkouts, getBaselines } from "@/lib/api-client";
+import { getWorkouts, getPatterns } from "@/lib/api-client";
 import type {
   ApiWorkout,
-  ApiBaseline,
+  ApiDiscoveredPattern,
   DailyMetrics,
   Insight,
 } from "@/lib/types";
@@ -60,25 +60,39 @@ function buildTrend(workouts: ApiWorkout[]): DailyMetrics[] {
   return trend;
 }
 
-/** Build a placeholder Insight from baselines when no real insight endpoint exists. */
-function insightFromBaselines(baselines: ApiBaseline[]): Insight | null {
-  if (!baselines.length) return null;
-  const first = baselines[0]!;
+/** Build an Insight card from the most recent discovered pattern, if any. */
+function insightFromPatterns(patterns: ApiDiscoveredPattern[]): Insight | null {
+  if (!patterns.length) return null;
+  const p = patterns[0]!;
+  const absR = Math.abs(p.pearson_r);
+  const confidence =
+    absR >= 0.6 && p.sample_count >= 15
+      ? "high"
+      : absR >= 0.45 && p.sample_count >= 8
+        ? "moderate"
+        : "low";
   return {
-    id: "baseline-insight",
-    title: "Your baselines have been computed",
-    observation: `Numa has analysed ${baselines.length} baseline metric${baselines.length > 1 ? "s" : ""} across your recorded activities. Upload more data to generate personalised pattern insights.`,
-    evidence: baselines
-      .slice(0, 3)
-      .map(
-        (b) =>
-          `${b.activity_type} · ${b.metric_name}: ${Math.round(b.value)} (${b.sample_count} sessions)`,
-      ),
-    confidence: "moderate",
-    alternatives: ["More sessions will improve accuracy"],
-    relatedMetric: first.metric_name,
-    status: "info",
+    id: `pattern-${p.id}`,
+    title: `Pattern: ${humanCheckName(p.check_name)}`,
+    observation: p.template_summary,
+    evidence: [
+      `Pearson r = ${p.pearson_r.toFixed(2)} across ${p.sample_count} session${p.sample_count !== 1 ? "s" : ""}`,
+      `Direction: ${p.direction === "positive" ? "as one goes up, so does the other" : "as one goes up, the other goes down"}`,
+      `Threshold: |r| ≥ ${p.threshold.toFixed(2)}`,
+    ],
+    confidence,
+    alternatives: [
+      "Correlation does not imply causation — verify before changing your routine",
+    ],
+    relatedMetric: p.check_name,
+    status: p.direction === "negative" ? "attention" : "info",
   };
+}
+
+function humanCheckName(name: string): string {
+  return name
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -127,7 +141,7 @@ function EmptyState() {
 
 export default function DashboardPage() {
   const [workouts, setWorkouts] = useState<ApiWorkout[]>([]);
-  const [baselines, setBaselines] = useState<ApiBaseline[]>([]);
+  const [patterns, setPatterns] = useState<ApiDiscoveredPattern[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -135,10 +149,10 @@ export default function DashboardPage() {
     let cancelled = false;
     (async () => {
       try {
-        const [w, b] = await Promise.all([getWorkouts(50), getBaselines()]);
+        const [w, p] = await Promise.all([getWorkouts(50), getPatterns()]);
         if (!cancelled) {
           setWorkouts(w);
-          setBaselines(b);
+          setPatterns(p);
         }
       } catch {
         if (!cancelled)
@@ -157,7 +171,7 @@ export default function DashboardPage() {
   const mostRecent = workouts[0];
   const today = mostRecent ? workoutToTodayMetrics(mostRecent) : null;
   const trend = buildTrend(workouts);
-  const insight = insightFromBaselines(baselines);
+  const insight = insightFromPatterns(patterns);
 
   return (
     <div>
@@ -194,7 +208,7 @@ export default function DashboardPage() {
           <TodayStateCard today={today} recent={trend} />
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <WhatChanged baselines={baselines} latestWorkout={mostRecent} />
+            <WhatChanged latestWorkout={mostRecent} />
             {insight && <AIInsightCard insight={insight} />}
           </div>
         </div>

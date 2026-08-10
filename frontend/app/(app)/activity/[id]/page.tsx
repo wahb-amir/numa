@@ -6,9 +6,14 @@ import { TopHeader } from "@/components/shell/top-header";
 import { MetricStat } from "@/components/ui/metric-stat";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ReflectionForm } from "@/components/dashboard/reflection-form";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, TrendingDown, TrendingUp } from "lucide-react";
 import { api } from "@/lib/api";
-import type { ApiWorkout } from "@/lib/types";
+import { getComparison } from "@/lib/api-client";
+import type {
+  ApiWorkout,
+  ApiComparisonResponse,
+  ApiComparisonMetric,
+} from "@/lib/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -98,6 +103,9 @@ export default function ActivityDetailPage({
   const { id } = use(params);
 
   const [workout, setWorkout] = useState<ApiWorkout | null>(null);
+  const [comparison, setComparison] = useState<ApiComparisonResponse | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFoundFlag, setNotFoundFlag] = useState(false);
@@ -106,8 +114,12 @@ export default function ActivityDetailPage({
     if (!id) return;
     (async () => {
       try {
-        const { data } = await api.get<ApiWorkout>(`/workouts/${id}`);
-        setWorkout(data);
+        const [{ data: w }, cmp] = await Promise.all([
+          api.get<ApiWorkout>(`/workouts/${id}`),
+          getComparison(id).catch(() => null),
+        ]);
+        setWorkout(w);
+        setComparison(cmp);
       } catch (err: unknown) {
         const status = (err as { response?: { status?: number } })?.response
           ?.status;
@@ -249,9 +261,134 @@ export default function ActivityDetailPage({
               /* No reflection yet — show the form pre-wired to this workout */
               <ReflectionForm workoutId={id} />
             )}
+
+            {/* ── Numa's Interpretation (baseline comparison) ── */}
+            {comparison && comparison.comparison && (
+              <ComparisonPanel comparison={comparison.comparison} />
+            )}
           </>
         )}
       </div>
     </div>
+  );
+}
+
+// ─── Comparison panel ─────────────────────────────────────────────────────────
+
+const METRIC_DISPLAY: Record<
+  string,
+  { label: string; unit: string; integer: boolean }
+> = {
+  avg_hr: { label: "Avg HR", unit: "bpm", integer: true },
+  avg_pace_min_km: { label: "Avg Pace", unit: "min/km", integer: false },
+  avg_speed_kmh: { label: "Avg Speed", unit: "km/h", integer: false },
+  distance_km: { label: "Distance", unit: "km", integer: false },
+  duration_seconds: { label: "Duration", unit: "s", integer: true },
+  calories: { label: "Calories", unit: "kcal", integer: true },
+};
+
+const HIGHER_IS_WORSE: Record<string, boolean> = {
+  avg_hr: true,
+  avg_pace_min_km: true,
+  duration_seconds: false,
+  distance_km: false,
+  avg_speed_kmh: false,
+  calories: false,
+};
+
+const LABEL_TEXT: Record<string, string> = {
+  typical: "typical for you",
+  somewhat_above: "somewhat above your normal",
+  somewhat_below: "somewhat below your normal",
+  notably_above: "notably above your normal",
+  notably_below: "notably below your normal",
+  insufficient_data: "no baseline yet",
+};
+
+function ComparisonPanel({
+  comparison,
+}: {
+  comparison: Record<string, ApiComparisonMetric>;
+}) {
+  const metrics = Object.entries(comparison)
+    .map(([name, c]) => {
+      const display = METRIC_DISPLAY[name];
+      if (!display) return null;
+      return { name, display, c };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+
+  if (metrics.length === 0) return null;
+
+  const hasBaseline = metrics.some((m) => m.c.baseline_mean !== null);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Numa&apos;s Interpretation</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-4">
+        {!hasBaseline && (
+          <p className="text-sm text-text-muted">
+            Numa needs at least 5 sessions of this activity type to compute
+            your baseline. Keep logging and check back here.
+          </p>
+        )}
+
+        {hasBaseline && (
+          <ul className="divide-y divide-border">
+            {metrics.map(({ name, display, c }) => {
+              if (c.baseline_mean === null) return null;
+              const valueDisplay = display.integer
+                ? Math.round(c.value).toString()
+                : c.value.toFixed(2);
+              const meanDisplay = display.integer
+                ? Math.round(c.baseline_mean).toString()
+                : c.baseline_mean.toFixed(2);
+              const stdDisplay = display.integer
+                ? Math.round(c.baseline_stddev ?? 0).toString()
+                : (c.baseline_stddev ?? 0).toFixed(2);
+              const devPct =
+                c.deviation_pct !== null ? c.deviation_pct : 0;
+              const valueIsHigher = c.value > c.baseline_mean;
+              const higherWorse = HIGHER_IS_WORSE[name] ?? false;
+              const isBad =
+                (higherWorse && valueIsHigher) ||
+                (!higherWorse && !valueIsHigher);
+              const Icon = valueIsHigher ? TrendingUp : TrendingDown;
+              const colorClass = isBad
+                ? "bg-status-attention-soft text-status-attention"
+                : "bg-status-positive-soft text-status-positive";
+              return (
+                <li
+                  key={name}
+                  className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-text-primary">
+                      {display.label}: {valueDisplay} {display.unit}
+                    </p>
+                    <p className="mt-0.5 text-xs text-text-muted">
+                      Baseline (14d): {meanDisplay} ± {stdDisplay} ·{" "}
+                      {devPct > 0 ? "+" : ""}
+                      {devPct.toFixed(1)}% deviation
+                    </p>
+                    <p className="mt-1 text-xs italic text-text-muted">
+                      {LABEL_TEXT[c.label] ?? c.label}
+                    </p>
+                  </div>
+                  <span
+                    className={`mt-0.5 inline-flex items-center gap-1 rounded-chip px-2 py-0.5 text-xs font-medium ${colorClass}`}
+                  >
+                    <Icon className="h-3 w-3" aria-hidden="true" />
+                    {Math.abs(devPct).toFixed(0)}%
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }

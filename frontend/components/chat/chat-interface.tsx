@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
 import { ChatMessage } from "./chat-message";
 import { Button } from "@/components/ui/button";
+import { narrate } from "@/lib/api-client";
 import type { ChatMessage as ChatMessageType } from "@/lib/types";
 
 const INITIAL: ChatMessageType[] = [
@@ -12,34 +13,16 @@ const INITIAL: ChatMessageType[] = [
     role: "assistant",
     content: "",
     observation:
-      "Hi Alex — I'm ready to help you understand your recent training and recovery data. Ask me anything about a workout, a trend, or how you've been feeling.",
+      "Hi — I'm ready to help you understand your recent training and recovery data. Ask me anything about a workout, a trend, or how you've been feeling.",
     confidence: "high",
   },
 ];
 
 const SUGGESTED_PROMPTS = [
-  "Why has my recovery been lower this week?",
+  "Why was my heart rate high on my last run?",
   "Am I training too much right now?",
   "How does my sleep affect my running pace?",
 ];
-
-function mockAssistantResponse(question: string): ChatMessageType {
-  return {
-    id: `m-${Date.now()}`,
-    role: "assistant",
-    content: "",
-    observation: `Based on the last 14 days, your recovery appears related to how consistently you're sleeping more than to training volume itself. This isn't a definitive answer to "${question}" — it's the strongest pattern currently visible in your data.`,
-    evidence: [
-      "3 of your 4 lowest recovery days followed nights under 6.5 hours of sleep",
-      "Training load over the same window stayed within your normal range",
-    ],
-    confidence: "moderate",
-    alternatives: [
-      "Cumulative fatigue from the block of harder sessions two weeks ago could still be a factor",
-      "Stress or schedule changes on short-sleep nights may be the deeper cause",
-    ],
-  };
-}
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessageType[]>(INITIAL);
@@ -51,7 +34,7 @@ export function ChatInterface() {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, isThinking]);
 
-  function send(question: string) {
+  async function send(question: string) {
     const trimmed = question.trim();
     if (!trimmed) return;
     const userMsg: ChatMessageType = {
@@ -62,11 +45,40 @@ export function ChatInterface() {
     setMessages((prev) => [...prev, userMsg]);
     setValue("");
     setIsThinking(true);
-    // Simulated latency for a mock AI response — no live model call in this prototype.
-    setTimeout(() => {
-      setMessages((prev) => [...prev, mockAssistantResponse(trimmed)]);
+
+    try {
+      const result = await narrate(trimmed);
+      const assistantMsg: ChatMessageType = {
+        id: `a-${Date.now()}`,
+        role: "assistant",
+        content: "",
+        observation: result.observation,
+        evidence:
+          result.possible_contributors.length > 0
+            ? result.possible_contributors
+            : undefined,
+        confidence: result.confidence,
+        alternatives: result.alternatives,
+        contextUsed: [`${result.evidence_count} session(s) of evidence`],
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch (err) {
+      // The LLM endpoint returns 503 when GROQ_API_KEY is missing or the
+      // model call fails. We surface a friendly fallback instead of
+      // crashing the UI.
+      const fallback: ChatMessageType = {
+        id: `a-${Date.now()}`,
+        role: "assistant",
+        content: "",
+        observation:
+          "I can't reach the narration model right now. The stats pipeline still works — check the Activity and Insights pages for pre-computed comparisons and patterns.",
+        confidence: "low",
+      };
+      void err;
+      setMessages((prev) => [...prev, fallback]);
+    } finally {
       setIsThinking(false);
-    }, 900);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {

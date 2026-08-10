@@ -96,10 +96,81 @@ export interface ApiBaseline {
   id: string;
   user_id: string;
   activity_type: ActivityType;
-  metric_name: string; // e.g. 'avg_hr', 'avg_pace_sec_per_km', 'avg_duration_seconds'
-  value: number;
+  metric_name: string; // e.g. 'avg_hr', 'avg_pace_min_km', 'duration_seconds'
+  rolling_mean: number;
+  rolling_stddev: number;
   sample_count: number;
+  window_days: number; // 14 (short) or 90 (long)
   computed_at: string;
+}
+
+export interface ApiComparisonMetric {
+  value: number;
+  baseline_mean: number | null;
+  baseline_stddev: number | null;
+  deviation_pct: number | null;
+  z_score: number | null;
+  label:
+    | "typical"
+    | "somewhat_above"
+    | "somewhat_below"
+    | "notably_above"
+    | "notably_below"
+    | "insufficient_data";
+}
+
+export interface ApiComparisonResponse {
+  workout: ApiWorkout;
+  comparison: Record<string, ApiComparisonMetric>;
+  baseline_window_days: number;
+}
+
+export interface ApiProgressPoint {
+  metric_name: string;
+  metric_label: string;
+  metric_unit: string;
+  activity_type: ActivityType;
+  earliest_month_mean: number | null;
+  latest_month_mean: number | null;
+  pct_change: number | null;
+  direction: "improving" | "declining" | "stable";
+  sample_count: number;
+  confidence: "high" | "moderate" | "low";
+  earliest_month: string | null;
+  latest_month: string | null;
+}
+
+export interface ApiDiscoveredPattern {
+  id: string;
+  user_id: string;
+  check_name: string;
+  activity_type: ActivityType | null;
+  metric_x: string;
+  metric_y: string;
+  pearson_r: number;
+  sample_count: number;
+  direction: "positive" | "negative";
+  threshold: number;
+  template_summary: string;
+  computed_at: string;
+}
+
+export interface ApiInsightsBundle {
+  patterns: ApiDiscoveredPattern[];
+  baselines: ApiBaseline[];
+  summary: {
+    workouts_count: number;
+    first_session_at: string | null;
+    activity_types: (ActivityType | null)[];
+  };
+}
+
+export interface ApiNarration {
+  observation: string;
+  possible_contributors: string[];
+  evidence_count: number;
+  confidence: "low" | "moderate" | "high";
+  alternatives: string[];
 }
 
 export interface ApiUploadStatus {

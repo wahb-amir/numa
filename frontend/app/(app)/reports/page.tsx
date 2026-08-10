@@ -2,15 +2,25 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Upload } from "lucide-react";
+import { Upload, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { TopHeader } from "@/components/shell/top-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Sparkline } from "@/components/charts/sparkline";
 import { MetricStat } from "@/components/ui/metric-stat";
-import { getWorkouts } from "@/lib/api-client";
-import type { ApiWorkout } from "@/lib/types";
+import { getWorkouts, getProgress, getPatterns } from "@/lib/api-client";
+import type {
+  ApiWorkout,
+  ApiProgressPoint,
+  ApiDiscoveredPattern,
+} from "@/lib/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function isWithinLastNDays(isoDate: string, n: number): boolean {
+  const d = new Date(isoDate);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - n);
+  return d >= cutoff;
+}
 
 function average(nums: (number | null)[]): number | null {
   const valid = nums.filter((n): n is number => n !== null);
@@ -20,26 +30,24 @@ function average(nums: (number | null)[]): number | null {
   );
 }
 
-function isWithinLastNDays(isoDate: string, n: number): boolean {
-  const d = new Date(isoDate);
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - n);
-  return d >= cutoff;
-}
+const ACTIVITY_LABEL: Record<string, string> = {
+  running: "Running",
+  cycling: "Cycling",
+  gym: "Gym",
+  other: "Other",
+};
 
-/** Build a 30-slot duration sparkline (one value per calendar day slot). */
-function buildDurationSparkline(workouts: ApiWorkout[]): (number | null)[] {
-  const slots: (number | null)[] = Array(30).fill(null);
-  for (const w of workouts) {
-    const daysAgo = Math.floor(
-      (Date.now() - new Date(w.start_time).getTime()) / 86400000,
-    );
-    if (daysAgo >= 0 && daysAgo < 30) {
-      slots[29 - daysAgo] = Math.round(w.duration_seconds / 60);
-    }
-  }
-  return slots;
-}
+const DIRECTION_ICON = {
+  improving: TrendingUp,
+  declining: TrendingDown,
+  stable: Minus,
+};
+
+const DIRECTION_COLOR = {
+  improving: "text-status-positive bg-status-positive-soft",
+  declining: "text-status-attention bg-status-attention-soft",
+  stable: "text-text-muted bg-surface-sunken",
+};
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
@@ -56,6 +64,8 @@ function Skeleton() {
 
 export default function ReportsPage() {
   const [workouts, setWorkouts] = useState<ApiWorkout[]>([]);
+  const [progress, setProgress] = useState<ApiProgressPoint[]>([]);
+  const [patterns, setPatterns] = useState<ApiDiscoveredPattern[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,8 +73,16 @@ export default function ReportsPage() {
     let cancelled = false;
     (async () => {
       try {
-        const data = await getWorkouts(100);
-        if (!cancelled) setWorkouts(data);
+        const [w, p, pat] = await Promise.all([
+          getWorkouts(200),
+          getProgress(),
+          getPatterns(),
+        ]);
+        if (!cancelled) {
+          setWorkouts(w);
+          setProgress(p);
+          setPatterns(pat);
+        }
       } catch {
         if (!cancelled)
           setError("Could not load workout data from the server.");
@@ -78,26 +96,13 @@ export default function ReportsPage() {
   }, []);
 
   const thisWeek = workouts.filter((w) => isWithinLastNDays(w.start_time, 7));
-  const lastWeek = workouts.filter(
-    (w) =>
-      !isWithinLastNDays(w.start_time, 7) &&
-      isWithinLastNDays(w.start_time, 14),
-  );
   const thisMonth = workouts.filter((w) => isWithinLastNDays(w.start_time, 30));
 
   const avgDurThis = average(thisWeek.map((w) => w.duration_seconds / 60));
-  const avgDurLast = average(lastWeek.map((w) => w.duration_seconds / 60));
-  const durationDelta =
-    avgDurThis !== null && avgDurLast !== null
-      ? Math.round((avgDurThis - avgDurLast) * 10) / 10
-      : null;
-
   const totalTimeThisWeek = thisWeek.reduce(
     (s, w) => s + Math.round(w.duration_seconds / 60),
     0,
   );
-  const sparkline = buildDurationSparkline(workouts);
-
   const activityTypes = Array.from(
     new Set(thisMonth.map((w) => w.activity_type)),
   );
@@ -145,9 +150,10 @@ export default function ReportsPage() {
 
       {!loading && !error && workouts.length > 0 && (
         <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
+          {/* This week */}
           <Card>
             <CardHeader>
-              <CardTitle>This Week vs. Last Week</CardTitle>
+              <CardTitle>This Week</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -155,11 +161,6 @@ export default function ReportsPage() {
                   label="Avg. session"
                   value={avgDurThis}
                   unit="min"
-                  hint={
-                    durationDelta === null
-                      ? undefined
-                      : `${durationDelta > 0 ? "+" : ""}${durationDelta} min vs. last week`
-                  }
                 />
                 <MetricStat label="Sessions" value={thisWeek.length} />
                 <MetricStat
@@ -172,15 +173,87 @@ export default function ReportsPage() {
                   value={activityTypes.length}
                 />
               </div>
-              <div className="mt-6">
-                <p className="mb-2 text-xs font-medium text-text-muted">
-                  30-day session duration trend (minutes)
-                </p>
-                <Sparkline data={sparkline} height={72} />
-              </div>
             </CardContent>
           </Card>
 
+          {/* Month-over-month progress trend */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Month-over-Month Trend</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {progress.length === 0 ? (
+                <p className="text-sm text-text-muted">
+                  Trends populate once Numa has at least two months of data.
+                </p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {progress.map((p) => {
+                    const Icon = DIRECTION_ICON[p.direction];
+                    return (
+                      <li
+                        key={`${p.activity_type}-${p.metric_name}`}
+                        className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-text-primary">
+                            {ACTIVITY_LABEL[p.activity_type] ?? p.activity_type} ·{" "}
+                            {p.metric_label}
+                          </p>
+                          <p className="text-xs text-text-muted">
+                            {p.earliest_month} → {p.latest_month} ·{" "}
+                            {p.sample_count} session
+                            {p.sample_count !== 1 ? "s" : ""} · {p.confidence}{" "}
+                            confidence
+                          </p>
+                        </div>
+                        <span
+                          className={
+                            "inline-flex items-center gap-1 rounded-chip px-2 py-0.5 text-xs font-medium " +
+                            DIRECTION_COLOR[p.direction]
+                          }
+                        >
+                          <Icon className="h-3 w-3" aria-hidden="true" />
+                          {p.pct_change !== null
+                            ? `${p.pct_change > 0 ? "+" : ""}${p.pct_change.toFixed(1)}%`
+                            : "—"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Verified patterns summary */}
+          {patterns.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Verified Patterns</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ul className="space-y-3">
+                  {patterns.map((p) => (
+                    <li
+                      key={p.id}
+                      className="rounded-card border border-border bg-surface-sunken/40 px-4 py-3"
+                    >
+                      <p className="text-sm text-text-primary">
+                        {p.template_summary}
+                      </p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        r = {p.pearson_r.toFixed(2)} · n = {p.sample_count} ·{" "}
+                        threshold |r| ≥ {p.threshold.toFixed(2)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Monthly summary */}
           <Card>
             <CardHeader>
               <CardTitle>Monthly Summary</CardTitle>
@@ -191,26 +264,13 @@ export default function ReportsPage() {
                 <span className="font-semibold text-text-primary">
                   {thisMonth.length} session{thisMonth.length !== 1 ? "s" : ""}
                 </span>{" "}
-                across {new Set(thisMonth.map((w) => w.activity_type)).size}{" "}
-                activity type
+                across{" "}
+                {new Set(thisMonth.map((w) => w.activity_type)).size} activity
+                type
                 {new Set(thisMonth.map((w) => w.activity_type)).size !== 1
                   ? "s"
                   : ""}
                 .
-                {durationDelta !== null && (
-                  <>
-                    {" "}
-                    Your average session duration has been{" "}
-                    <span className="font-semibold text-text-primary">
-                      {durationDelta > 0
-                        ? "increasing"
-                        : durationDelta < 0
-                          ? "decreasing"
-                          : "holding steady"}
-                    </span>{" "}
-                    compared to last week.
-                  </>
-                )}
               </p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {(["running", "cycling", "gym", "other"] as const).map(

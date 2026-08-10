@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { TopHeader } from "@/components/shell/top-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, AlertCircle, Plus } from "lucide-react";
+import { Loader2, AlertCircle, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { api } from "@/lib/api";
-import type { ApiWorkout, ActivityType } from "@/lib/types";
+import type { ApiWorkout, ApiComparisonMetric, ActivityType } from "@/lib/types";
 import Link from "next/link";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -38,6 +38,80 @@ function formatDuration(seconds: number): string {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+/**
+ * Pick the most representative metric for a workout and render a
+ * "vs. baseline" badge next to the row. We prefer avg_hr when present
+ * (most relatable), then pace, then duration.
+ */
+function deviationBadge(workout: ApiWorkout) {
+  const comparison = (workout as ApiWorkout & {
+    comparison?: Record<string, ApiComparisonMetric>;
+  }).comparison;
+  if (!comparison) return null;
+
+  const candidates: Array<{
+    metric: string;
+    label: string;
+    c: ApiComparisonMetric;
+  }> = [];
+  if (comparison.avg_hr) {
+    candidates.push({ metric: "avg_hr", label: "HR", c: comparison.avg_hr });
+  }
+  if (comparison.avg_pace_min_km) {
+    candidates.push({
+      metric: "avg_pace_min_km",
+      label: "pace",
+      c: comparison.avg_pace_min_km,
+    });
+  }
+  if (candidates.length === 0 && comparison.duration_seconds) {
+    candidates.push({
+      metric: "duration_seconds",
+      label: "dur",
+      c: comparison.duration_seconds,
+    });
+  }
+  const picked = candidates[0];
+  if (!picked) return null;
+
+  const { metric, c } = picked;
+  if (c.baseline_mean === null) return null;
+
+  const absZ = c.z_score === null ? 0 : Math.abs(c.z_score);
+  if (absZ < 0.5) {
+    return (
+      <span className="rounded-chip bg-surface-sunken px-2 py-0.5 text-xs text-text-muted">
+        Typical for you
+      </span>
+    );
+  }
+
+  const isPace = metric === "avg_pace_min_km";
+  const isHigherWorse = metric === "avg_hr" || isPace;
+  const valueIsHigher = c.value > c.baseline_mean;
+
+  // For HR / pace: higher value = worse. Flip the icon so the user
+  // sees the actual *direction* (above or below baseline), not just
+  // whether z is positive or negative.
+  const isBad =
+    (isHigherWorse && valueIsHigher) || (!isHigherWorse && !valueIsHigher);
+
+  const Icon = valueIsHigher ? TrendingUp : TrendingDown;
+  const sign = valueIsHigher ? "above" : "below";
+  const color = isBad
+    ? "bg-status-attention-soft text-status-attention"
+    : "bg-status-positive-soft text-status-positive";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-chip px-2 py-0.5 text-xs font-medium ${color}`}
+    >
+      <Icon className="h-3 w-3" aria-hidden="true" />
+      {Math.abs(c.deviation_pct ?? 0).toFixed(0)}% {sign} baseline
+    </span>
+  );
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -108,6 +182,7 @@ export default function ActivityPage() {
                 {workouts.map((w) => {
                   const hasReflection =
                     Array.isArray(w.reflections) && w.reflections.length > 0;
+                  const badge = deviationBadge(w);
                   return (
                     <li key={w.id}>
                       <Link
@@ -132,6 +207,7 @@ export default function ActivityPage() {
                         </div>
 
                         <div className="flex shrink-0 items-center gap-2">
+                          {badge}
                           {!hasReflection && (
                             <span className="flex items-center gap-1 rounded-chip border border-border px-2 py-0.5 text-xs text-text-muted">
                               <Plus className="h-3 w-3" />

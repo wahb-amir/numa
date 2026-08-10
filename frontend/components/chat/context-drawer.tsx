@@ -1,10 +1,9 @@
 import { Database } from "lucide-react";
 
 const CONTEXT_SOURCES = [
-  "Recent workouts (30d)",
-  "Sleep history",
-  "Recovery trend",
-  "Current goal: Base building",
+  "Today's baseline comparison",
+  "Verified correlation patterns",
+  "Recent reflection notes",
 ];
 
 export function ContextDrawer() {

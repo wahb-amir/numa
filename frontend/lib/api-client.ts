@@ -7,6 +7,11 @@ import type {
   ApiWorkout,
   ApiBaseline,
   ApiReflection,
+  ApiComparisonResponse,
+  ApiProgressPoint,
+  ApiDiscoveredPattern,
+  ApiInsightsBundle,
+  ApiNarration,
   EnergyLevel,
   ActivityType,
 } from "./types";
@@ -147,5 +152,53 @@ export async function getUploadStatus(
   uploadId: string,
 ): Promise<{ upload_status: string; error_message: string | null }> {
   const { data } = await api.get(`/uploads/${uploadId}/status`);
+  return data;
+}
+
+// ─── Phase 2 — Stats & Narration ─────────────────────────────────────────────
+
+export async function getComparison(
+  workoutId: string,
+): Promise<ApiComparisonResponse> {
+  const { data } = await api.get<ApiComparisonResponse>(
+    `/workouts/${workoutId}/comparison`,
+  );
+  return data;
+}
+
+export async function getProgress(): Promise<ApiProgressPoint[]> {
+  const { data } = await api.get<ApiProgressPoint[]>("/users/me/progress");
+  return data;
+}
+
+export async function getPatterns(): Promise<ApiDiscoveredPattern[]> {
+  const { data } = await api.get<ApiDiscoveredPattern[]>(
+    "/users/me/patterns",
+  );
+  return data;
+}
+
+export async function getInsights(): Promise<ApiInsightsBundle> {
+  const { data } = await api.get<ApiInsightsBundle>("/users/me/insights");
+  return data;
+}
+
+export async function narrate(
+  question: string,
+  workoutId?: string,
+): Promise<ApiNarration> {
+  const { data } = await api.post<ApiNarration>("/chat/narrate", {
+    question,
+    workout_id: workoutId,
+  });
+  return data;
+}
+
+export async function recomputeWorkoutStats(
+  workoutId: string,
+): Promise<{ queued: true }> {
+  const { data } = await api.post<{ queued: true }>(
+    `/workouts/${workoutId}/recompute`,
+  );
   return data;
 }
