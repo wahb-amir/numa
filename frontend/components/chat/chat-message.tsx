@@ -1,7 +1,8 @@
-import { cn } from "@/lib/utils";
+import { useState } from "react";
 import { ConfidenceBadge } from "@/components/ui/confidence-badge";
 import type { ChatMessage as ChatMessageType } from "@/lib/types";
-import { Sparkles } from "lucide-react";
+import { Sparkles, MessageCircleQuestion } from "lucide-react";
+import { ChatSourcesDisclosure } from "./chat-sources";
 
 export function ChatMessage({ message }: { message: ChatMessageType }) {
   if (message.role === "user") {
@@ -79,18 +80,74 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
               </ul>
             </div>
           )}
+          {message.questionsForYou && message.questionsForYou.length > 0 && (
+            <QuestionsForYou questions={message.questionsForYou} />
+          )}
           {!message.observation && (
             <p className="text-sm leading-relaxed text-text-primary">
               {message.content}
             </p>
           )}
-          {message.confidence && (
-            <div className={cn("border-t border-border pt-2.5")}>
-              <ConfidenceBadge level={message.confidence} />
+          {(message.confidence || message.sources) && (
+            <div className="space-y-2.5 border-t border-border pt-2.5">
+              {message.sources && (
+                <ChatSourcesDisclosure sources={message.sources} />
+              )}
+              {message.confidence && <ConfidenceBadge level={message.confidence} />}
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * "Questions to help me understand" — a list of clickable chips the
+ * model emits when the user's experience doesn't match the data (or
+ * the data is too thin to answer well). Clicking a chip sends the
+ * question as the next user turn. Wired up by setting a sentinel
+ * custom event the chat-interface listens for; we keep this
+ * self-contained to avoid prop-drilling the send function down to the
+ * message component.
+ */
+function QuestionsForYou({ questions }: { questions: string[] }) {
+  const [pending, setPending] = useState<string | null>(null);
+
+  const handleClick = (q: string) => {
+    if (pending) return;
+    setPending(q);
+    // Dispatch a custom event the chat-interface listens for. The
+    // component sets this state to avoid double-clicks while the
+    // request is in flight; the listener resets it on completion.
+    window.dispatchEvent(
+      new CustomEvent("numa:chat-send", { detail: { question: q } })
+    );
+  };
+
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+        Questions to help me understand
+      </p>
+      <ul className="mt-1.5 space-y-1.5">
+        {questions.map((q, i) => (
+          <li key={i}>
+            <button
+              type="button"
+              onClick={() => handleClick(q)}
+              disabled={pending !== null}
+              className="flex w-full items-start gap-2 rounded-control border border-border-strong bg-surface-base px-3 py-2 text-left text-sm leading-relaxed text-text-primary transition-colors hover:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <MessageCircleQuestion
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-emerald"
+                aria-hidden="true"
+              />
+              <span>{q}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

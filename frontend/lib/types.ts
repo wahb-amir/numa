@@ -59,6 +59,8 @@ export interface ChatMessage {
   confidence?: Confidence;
   alternatives?: string[];
   contextUsed?: string[];
+  sources?: ApiNarrationSources;
+  questionsForYou?: string[];
 }
 
 // ─── Backend API types (real data from the Express server) ────────────────────
@@ -171,6 +173,56 @@ export interface ApiNarration {
   evidence_count: number;
   confidence: "low" | "moderate" | "high";
   alternatives: string[];
+  questions_for_you: string[];
+  sources: ApiNarrationSources;
+}
+
+/**
+ * Structured data backing a narration. Mirrors what the backend's
+ * stats layer produced and fed to the LLM. The chat message renders
+ * this as a collapsible "View the data" disclosure so users can audit
+ * the numbers behind any claim.
+ */
+export interface ApiNarrationSources {
+  focus_workout: {
+    id: string;
+    activity_type: ActivityType;
+    start_time: string;
+  };
+  comparisons: Array<{
+    metric_name: string;
+    metric_label: string;
+    unit: string;
+    value: number;
+    baseline_mean: number;
+    baseline_stddev: number;
+    deviation_pct: number | null;
+    label: string;
+  }>;
+  patterns: Array<{
+    check_name: string;
+    template_summary: string;
+    pearson_r: number;
+    sample_count: number;
+    activity_type: ActivityType | null;
+  }>;
+  notes: Array<{
+    date: string;
+    workout_id: string | null;
+    note: string;
+  }>;
+  progress: Array<{
+    metric_name: string;
+    metric_label: string;
+    activity_type: ActivityType;
+    earliest_month_mean: number | null;
+    latest_month_mean: number | null;
+    pct_change: number | null;
+    direction: "improving" | "declining" | "stable";
+    confidence: "high" | "moderate" | "low";
+    earliest_month: string | null;
+    latest_month: string | null;
+  }>;
 }
 
 export interface ApiUploadStatus {

@@ -185,11 +185,15 @@ export async function getInsights(): Promise<ApiInsightsBundle> {
 
 export async function narrate(
   question: string,
-  workoutId?: string,
+  options?: {
+    workoutId?: string;
+    history?: Array<{ role: "user" | "assistant"; content: string }>;
+  },
 ): Promise<ApiNarration> {
   const { data } = await api.post<ApiNarration>("/chat/narrate", {
     question,
-    workout_id: workoutId,
+    workout_id: options?.workoutId,
+    history: options?.history,
   });
   return data;
 }

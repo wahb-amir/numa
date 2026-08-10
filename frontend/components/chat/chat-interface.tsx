@@ -34,6 +34,21 @@ export function ChatInterface() {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, isThinking]);
 
+  // Listen for chip-click events from the chat message components.
+  // Clicking a "questions_for_you" chip sends that question as the
+  // next user turn. Wired via a window event so we don't have to
+  // prop-drill the send function down through every ChatMessage.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ question: string }>).detail;
+      if (!detail?.question) return;
+      void send(detail.question);
+    };
+    window.addEventListener("numa:chat-send", handler);
+    return () => window.removeEventListener("numa:chat-send", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function send(question: string) {
     const trimmed = question.trim();
     if (!trimmed) return;
@@ -46,8 +61,22 @@ export function ChatInterface() {
     setValue("");
     setIsThinking(true);
 
+    // Build conversation history from the messages we already have.
+    // Skip the initial greeting (it has no useful context), keep the
+    // last 6 turns so the model can see the recent exchange without
+    // blowing the input budget. The "content" we send is the message
+    // text — for assistant turns that's the observation; for user
+    // turns it's the question.
+    const history = messages
+      .filter((m) => m.id !== "m0")
+      .slice(-6)
+      .map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.role === "user" ? m.content : m.observation ?? m.content,
+      }));
+
     try {
-      const result = await narrate(trimmed);
+      const result = await narrate(trimmed, { history });
       const assistantMsg: ChatMessageType = {
         id: `a-${Date.now()}`,
         role: "assistant",
@@ -60,6 +89,11 @@ export function ChatInterface() {
         confidence: result.confidence,
         alternatives: result.alternatives,
         contextUsed: [`${result.evidence_count} session(s) of evidence`],
+        sources: result.sources,
+        questionsForYou:
+          result.questions_for_you.length > 0
+            ? result.questions_for_you
+            : undefined,
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
