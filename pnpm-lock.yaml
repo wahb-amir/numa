@@ -31,6 +31,9 @@ importers:
       fast-xml-parser:
         specifier: ^4.5.0
         version: 4.5.7
+      groq-sdk:
+        specifier: ^1.5.0
+        version: 1.5.0
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0(supports-color@5.5.0)
@@ -94,7 +97,7 @@ importers:
         version: 16.6.1
     devDependencies:
       '@types/node':
-        specifier: ^20.14.0
+        specifier: ^20.19.43
         version: 20.19.43
       tsx:
         specifier: ^4.19.0
@@ -2396,6 +2399,10 @@ packages:
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
     engines: {node: '>= 0.4'}
+
+  groq-sdk@1.5.0:
+    resolution: {integrity: sha512-aa5yaMVd8kehBacU3Pp7roObOuPksZNau+nPW+GDDB7OV/8jybVzeeOv54lZj8owNNIc3a7Tu2eYI7/kIwtMNw==}
+    hasBin: true
 
   has-bigints@1.1.0:
     resolution: {integrity: sha512-R3pbpkcIqv2Pm3dUwgjclDRVmWpTJW2DcMzcIhEXEx1oh/CEMObMm3KLmRJOdvhM7o4uQBnwr8pzRK2sJWIqfg==}
@@ -5776,6 +5783,8 @@ snapshots:
       gopd: 1.2.0
 
   gopd@1.2.0: {}
+
+  groq-sdk@1.5.0: {}
 
   has-bigints@1.1.0: {}
 
