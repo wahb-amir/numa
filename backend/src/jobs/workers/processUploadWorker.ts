@@ -2,7 +2,7 @@ import { Worker, Job } from "bullmq";
 import { EventEmitter } from "events";
 import { redisConnection } from "../../config/redis";
 import { supabase } from "../../config/supabase";
-import { baselineQueue } from "../queues";
+import { baselineQueue, correlationQueue } from "../queues";
 import { parseCsvDetailed } from "../../utils/csvParser";
 import { parseGpxDetailed } from "../../utils/gpxParser";
 import { logger } from "../../utils/logger";
@@ -187,6 +187,10 @@ export const processUploadWorker = new Worker(
       ];
       for (const type of activityTypes) {
         await baselineQueue.add("computeBaselines", {
+          userId,
+          activityType: type,
+        });
+        await correlationQueue.add("computeCorrelations", {
           userId,
           activityType: type,
         });

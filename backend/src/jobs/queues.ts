@@ -7,3 +7,6 @@ export const uploadQueue = new Queue("uploadQueue", {
 export const baselineQueue = new Queue("baselineQueue", {
   connection: redisConnection,
 });
+export const correlationQueue = new Queue("correlationQueue", {
+  connection: redisConnection,
+});
