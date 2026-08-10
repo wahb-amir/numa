@@ -2,6 +2,9 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAuth, AuthenticatedRequest } from "../middleware/auth";
 import { supabase, supabaseSecret } from "../config/supabase";
+import { computeProgressForUser } from "../utils/progress";
+import { getMetric, type WorkoutForStats } from "../utils/metrics";
+import { logger } from "../utils/logger";
 
 export const userRouter = Router();
 
@@ -144,3 +147,166 @@ function deriveNameFromEmail(email: string | undefined): string {
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 }
+
+/**
+ * GET /api/users/me/progress
+ *
+ * Month-over-month progress trend per (activity_type, metric). Pulls the
+ * user's full workout history once, groups by month, and computes the
+ * stats inline — no separate `progress` table to keep in sync.
+ *
+ * Empty list = user hasn't been around long enough to span 2 months.
+ */
+userRouter.get(
+  "/me/progress",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user!.id;
+
+      const { data: rows, error } = await supabase
+        .from("workouts")
+        .select("activity_type, start_time, duration_seconds, metrics, status")
+        .eq("user_id", userId)
+        .eq("status", "valid")
+        .order("start_time", { ascending: true })
+        .limit(2000);
+
+      if (error) {
+        logger.error("progress fetch failed:", error);
+        return res.status(500).json({ error: "Failed to fetch progress" });
+      }
+
+      const workouts: WorkoutForStats[] = (rows ?? []).map((w) => ({
+        activity_type: w.activity_type as
+          | "running"
+          | "cycling"
+          | "gym"
+          | "other",
+        start_time: w.start_time as string,
+        duration_seconds: w.duration_seconds as number,
+        metrics: (w.metrics ?? {}) as Record<string, unknown>,
+      }));
+
+      const progress = computeProgressForUser(workouts);
+
+      // Annotate each row with the metric's UI label / unit so the
+      // frontend doesn't have to look anything up.
+      const enriched = progress.map((p) => {
+        const metric = getMetric(p.metric_name);
+        return {
+          ...p,
+          metric_label: metric?.label ?? p.metric_name,
+          metric_unit: metric?.unit ?? "",
+        };
+      });
+
+      return res.status(200).json(enriched);
+    } catch (error) {
+      logger.error("progress endpoint error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+/**
+ * GET /api/users/me/patterns
+ *
+ * Returns rows from `discovered_patterns` for the authenticated user,
+ * most recent first. These are the verified correlation checks — the
+ * LLM downstream only narrates the `template_summary` of each row.
+ */
+userRouter.get(
+  "/me/patterns",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user!.id;
+
+      const { data, error } = await supabase
+        .from("discovered_patterns")
+        .select("*")
+        .eq("user_id", userId)
+        .order("computed_at", { ascending: false });
+
+      if (error) {
+        logger.error("patterns fetch failed:", error);
+        return res.status(500).json({ error: "Failed to fetch patterns" });
+      }
+
+      return res.status(200).json(data ?? []);
+    } catch (error) {
+      logger.error("patterns endpoint error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+/**
+ * GET /api/users/me/insights
+ *
+ * Composed insight feed — combines raw pattern rows, baselines, and a
+ * recent-workout overview into the shape the frontend's /insights page
+ * already knows how to render.
+ *
+ * Returned shape:
+ *   {
+ *     patterns: [...],      // templated summaries ready to display
+ *     baselines: [...],     // all baseline rows
+ *     summary: { workouts, activity_types, first_session_at }
+ *   }
+ */
+userRouter.get(
+  "/me/insights",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user!.id;
+
+      const [patternsRes, baselinesRes, workoutsRes] = await Promise.all([
+        supabase
+          .from("discovered_patterns")
+          .select("*")
+          .eq("user_id", userId)
+          .order("computed_at", { ascending: false }),
+        supabase.from("baselines").select("*").eq("user_id", userId),
+        supabase
+          .from("workouts")
+          .select("id, activity_type, start_time")
+          .eq("user_id", userId)
+          .eq("status", "valid")
+          .order("start_time", { ascending: true })
+          .limit(1),
+      ]);
+
+      if (patternsRes.error || baselinesRes.error || workoutsRes.error) {
+        logger.error("insights fetch failed:", {
+          patterns: patternsRes.error,
+          baselines: baselinesRes.error,
+          workouts: workoutsRes.error,
+        });
+        return res.status(500).json({ error: "Failed to load insights" });
+      }
+
+      const firstWorkout = workoutsRes.data?.[0];
+      const activityTypes = Array.from(
+        new Set(
+          (patternsRes.data ?? []).map((p) => p.activity_type).filter(Boolean),
+        ),
+      );
+
+      return res.status(200).json({
+        patterns: patternsRes.data ?? [],
+        baselines: baselinesRes.data ?? [],
+        summary: {
+          workouts_count: (baselinesRes.data ?? []).length,
+          first_session_at: firstWorkout?.start_time ?? null,
+          activity_types: activityTypes,
+        },
+      });
+    } catch (error) {
+      logger.error("insights endpoint error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);

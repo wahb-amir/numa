@@ -7,9 +7,13 @@ import { uploadRouter } from "./routes/uploads";
 import { workoutRouter } from "./routes/workouts";
 import { userRouter } from "./routes/users";
 import { authRouter } from "./routes/auth";
+import { chatRouter } from "./routes/chat";
 import { logger } from "./utils/logger";
 // Side-effect import: registers the BullMQ Worker that processes uploads.
 import "./jobs/workers/processUploadWorker";
+// Side-effect imports: register the Phase 2 stats workers.
+import "./jobs/workers/baselineWorker";
+import "./jobs/workers/correlationWorker";
 import { attachWss } from "./server/wss";
 
 const app = express();
@@ -24,6 +28,7 @@ app.use("/api/uploads", uploadRouter);
 app.use("/api/workouts", workoutRouter);
 app.use("/api/users", userRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/chat", chatRouter);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
