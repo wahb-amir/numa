@@ -28,6 +28,24 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
           </span>
         </div>
         <div className="space-y-3 px-4 py-3.5">
+          {/* Takeaway leads the reply when present. It surfaces BEFORE
+              the Observation card so the user reads Numa's read on the
+              question first, then the numbers behind it. When the
+              observation is empty (casual follow-ups), the takeaway IS
+              the reply — no header label, just the prose. */}
+          {message.takeaway && (
+            <div>
+              {message.observation ? (
+                <p className="text-sm leading-relaxed text-text-primary">
+                  {message.takeaway}
+                </p>
+              ) : (
+                <p className="text-sm leading-relaxed text-text-primary">
+                  {message.takeaway}
+                </p>
+              )}
+            </div>
+          )}
           {message.observation && (
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
@@ -83,7 +101,7 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
           {message.questionsForYou && message.questionsForYou.length > 0 && (
             <QuestionsForYou questions={message.questionsForYou} />
           )}
-          {!message.observation && (
+          {!message.observation && !message.takeaway && (
             <p className="text-sm leading-relaxed text-text-primary">
               {message.content}
             </p>

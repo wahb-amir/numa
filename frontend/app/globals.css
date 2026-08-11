@@ -38,6 +38,48 @@
   --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Dark theme — same token names so every component that uses
+ * surface.*, text.*, accent.*, etc. inverts without code changes.
+ * The :root block is the light default; .dark overrides below. The
+ * html.dark class is toggled by an inline boot script in app/layout.tsx
+ * (runs before paint to avoid a flash) and by useTheme() on the client.
+ */
+.dark {
+  /* Surfaces — warm-dark with a touch of brown, matching the parchment
+   * palette's undertone rather than a cold neutral grey. */
+  --color-surface-base: #16151b;
+  --color-surface-raised: #1f1e25;
+  --color-surface-sunken: #100f13;
+  --color-surface-overlay: rgba(0, 0, 0, 0.55);
+
+  /* Borders — a hair lighter than the raised surface so 1px lines still
+   * read without being harsh. */
+  --color-border: #2c2a32;
+  --color-border-strong: #3a3741;
+
+  /* Text — off-white primary, mid-grey secondary. */
+  --color-text-primary: #ece9e1;
+  --color-text-secondary: #a8a59a;
+  --color-text-muted: #6c695f;
+  --color-text-inverse: #16151b;
+
+  /* Accents — shifted lighter for AA contrast on dark surfaces. */
+  --color-accent-emerald: #6fa389;
+  --color-accent-emerald-soft: #243029;
+  --color-accent-slate: #8b9bb1;
+  --color-accent-slate-soft: #1f2733;
+
+  /* Status — brightened for legibility on the dark surface. */
+  --color-status-positive: #6fb87a;
+  --color-status-positive-soft: #1f2c22;
+  --color-status-attention: #d99a3a;
+  --color-status-attention-soft: #2d2519;
+  --color-status-concerning: #d97a6a;
+  --color-status-concerning-soft: #2c1e1a;
+  --color-status-info: #8a909a;
+  --color-status-info-soft: #1f1f23;
+}
+
 * {
   border-color: var(--color-border);
 }

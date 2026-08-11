@@ -1,16 +1,11 @@
-import { TopHeader } from "@/components/shell/top-header";
-import { ContextDrawer } from "@/components/chat/context-drawer";
-import { ChatInterface } from "@/components/chat/chat-interface";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Chat — Numa" };
 
 export default function ChatPage() {
-  return (
-    <div>
-      <TopHeader title="Chat" subtitle="Ask Numa about your data" />
-      <ContextDrawer />
-      <ChatInterface />
-    </div>
-  );
+  // The chat layout (chat/layout.tsx) mounts the client ChatRouteShell,
+  // which reads ?session=, fetches profile / session data, and renders
+  // the chat history rail + greeting/thread. This page is a thin
+  // anchor so the route exists; the heavy lifting is in the layout.
+  return null;
 }

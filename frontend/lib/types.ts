@@ -55,12 +55,44 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   observation?: string;
+  /**
+   * Optional 1–2 sentence grounded interpretation from the narrator.
+   * Surfaced as the leading paragraph above the Observation card when
+   * present. When observation is empty (casual follow-ups), this is
+   * the entire reply.
+   */
+  takeaway?: string;
   evidence?: string[];
   confidence?: Confidence;
   alternatives?: string[];
   contextUsed?: string[];
   sources?: ApiNarrationSources;
   questionsForYou?: string[];
+}
+
+/**
+ * Server-side session row from /api/chat/sessions. Used by the history
+ * sidebar to render the list.
+ */
+export interface ChatSession {
+  id: string;
+  title: string;
+  updated_at: string;
+  message_count: number;
+  focus_workout_id: string | null;
+}
+
+/**
+ * Persisted chat turn returned by GET /api/chat/sessions/:id/messages.
+ * Mirrors chat_messages columns. The UI adapts narration back into the
+ * ChatMessage shape it already understands.
+ */
+export interface ChatMessageRecord {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  narration: ApiNarration | null;
+  created_at: string;
 }
 
 // ─── Backend API types (real data from the Express server) ────────────────────
@@ -169,6 +201,11 @@ export interface ApiInsightsBundle {
 
 export interface ApiNarration {
   observation: string;
+  /**
+   * Optional 1–2 sentence grounded interpretation. Absent when the
+   * model didn't have enough to position itself.
+   */
+  takeaway?: string;
   possible_contributors: string[];
   evidence_count: number;
   confidence: "low" | "moderate" | "high";

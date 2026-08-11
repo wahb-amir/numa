@@ -15,13 +15,34 @@ export const metadata: Metadata = {
     "Numa synthesizes wearable data, reflections, and training history into context you can trust.",
 };
 
+/**
+ * Runs synchronously before React hydrates, so the page paints with the
+ * correct theme on first render and we never see the light-mode flash
+ * on reload. Reads the user's saved preference (system / light / dark)
+ * and toggles .dark on <html>. Mirrors the logic in useTheme.ts.
+ */
+const themeBootScript = `
+(function() {
+  try {
+    var stored = localStorage.getItem('numa-theme');
+    var pref = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+    var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', dark);
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={publicSans.variable}>
+    <html lang="en" className={publicSans.variable} suppressHydrationWarning>
+      <head>
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <link
         rel="icon"
         type="image/png"

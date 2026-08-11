@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "./nav-items";
 import { UserMenu } from "./user-menu";
+import { ThemeNavControls } from "./theme-nav-controls";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -51,8 +52,11 @@ export function Sidebar() {
           );
         })}
       </ul>
-      <div className="border-t border-border p-4">
-        <UserMenu />
+      <div className="border-t border-border">
+        <ThemeNavControls />
+        <div className="px-4 pb-4">
+          <UserMenu />
+        </div>
       </div>
     </nav>
   );

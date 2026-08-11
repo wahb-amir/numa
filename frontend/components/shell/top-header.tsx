@@ -1,6 +1,7 @@
 import { formatDate } from "@/lib/utils";
 import { Bell, LogOut } from "lucide-react";
 import { LogoutButton } from "./logout-button";
+import { ThemeToggle } from "./theme-toggle";
 
 export function TopHeader({
   title,
@@ -30,6 +31,7 @@ export function TopHeader({
         >
           <Bell className="h-4 w-4" aria-hidden="true" />
         </button>
+        <ThemeToggle />
         {/* Mobile-friendly logout: full label on sm+, icon-only below. */}
         <LogoutButton
           className="flex h-9 items-center gap-1.5 rounded-control px-2.5 text-xs font-medium text-status-concerning hover:bg-status-concerning-soft sm:px-3 sm:text-sm"

@@ -12,6 +12,8 @@ import type {
   ApiDiscoveredPattern,
   ApiInsightsBundle,
   ApiNarration,
+  ChatSession,
+  ChatMessageRecord,
   EnergyLevel,
   ActivityType,
 } from "./types";
@@ -187,15 +189,68 @@ export async function narrate(
   question: string,
   options?: {
     workoutId?: string;
+    /**
+     * When set, the backend persists both turns and reads history from
+     * the database. When omitted, the backend auto-creates a session and
+     * returns its id in `sessionId` — see the typed return below.
+     */
+    sessionId?: string;
+    /** Deprecated client-side history; ignored when sessionId is set. */
     history?: Array<{ role: "user" | "assistant"; content: string }>;
   },
-): Promise<ApiNarration> {
-  const { data } = await api.post<ApiNarration>("/chat/narrate", {
-    question,
-    workout_id: options?.workoutId,
-    history: options?.history,
+): Promise<ApiNarration & { session_id: string }> {
+  const { data } = await api.post<ApiNarration & { session_id: string }>(
+    "/chat/narrate",
+    {
+      question,
+      workout_id: options?.workoutId,
+      session_id: options?.sessionId,
+      history: options?.history,
+    },
+  );
+  return data;
+}
+
+/**
+ * Chat sessions backing the /chat history sidebar. The backend exposes
+ * them under /api/chat/sessions; the first GET on every /chat mount
+ * populates the rail, and the mutations are triggered by rename / delete
+ * in the sidebar itself.
+ */
+export async function listChatSessions(): Promise<ChatSession[]> {
+  const { data } = await api.get<ChatSession[]>("/chat/sessions");
+  return data;
+}
+
+export async function createChatSession(payload?: {
+  title?: string;
+  focus_workout_id?: string;
+}): Promise<ChatSession> {
+  const { data } = await api.post<ChatSession>("/chat/sessions", payload ?? {});
+  return data;
+}
+
+export async function getSessionMessages(
+  sessionId: string,
+): Promise<ChatMessageRecord[]> {
+  const { data } = await api.get<ChatMessageRecord[]>(
+    `/chat/sessions/${sessionId}/messages`,
+  );
+  return data;
+}
+
+export async function renameChatSession(
+  sessionId: string,
+  title: string,
+): Promise<ChatSession> {
+  const { data } = await api.patch<ChatSession>(`/chat/sessions/${sessionId}`, {
+    title,
   });
   return data;
+}
+
+export async function deleteChatSession(sessionId: string): Promise<void> {
+  await api.delete(`/chat/sessions/${sessionId}`);
 }
 
 export async function recomputeWorkoutStats(

@@ -44,6 +44,15 @@ export const isLlmConfigured = (): boolean => Boolean(env.GROQ_API_KEY);
  */
 export interface NarrationPayload {
   observation: string;
+  /**
+   * 1–2 sentences giving a grounded interpretation of the question
+   * when the data supports one. Optional — the model leaves it empty
+   * when it doesn't. Designed to be the "what Numa actually thinks"
+   * field, distinct from `observation` (which strictly restates the
+   * pre-computed numbers). Citable from the Context blocks; never
+   * from outside knowledge.
+   */
+  takeaway?: string;
   possible_contributors: string[];
   evidence_count: number;
   confidence: "low" | "moderate" | "high";
@@ -130,12 +139,36 @@ export interface DatedNote {
 }
 
 /**
+ * The accumulated-load evidence bundle, fetched only when intent is
+ * `load`. Combines the training_load_vs_avg_hr pattern (the only
+ * pre-computed correlation that talks about load) with the last
+ * several reflection notes + their numeric effort rating + the
+ * energy_level chip. Together they're enough for the model to reason
+ * about whether the user is overdoing it without inventing a metric.
+ */
+export interface LoadContext {
+  pattern: PatternContext | null;
+  /**
+   * Most recent first. Empty effort_rating / energy_level / note
+   * fields are allowed — the model is told which are present vs
+   * absent so it doesn't quote blanks.
+   */
+  recentSessions: Array<{
+    date: string;
+    workout_id: string | null;
+    effort_rating: number | null; // 1–10
+    energy_level: string | null; // "low" | "normal" | "high"
+    note: string | null;
+  }>;
+}
+
+/**
  * A cheap heuristic classification of the user's question into one of
  * four intents. The route uses this to decide which context blocks to
  * fetch. The prompt also receives the intent label so the model can
  * orient itself.
  */
-export type QuestionIntent = "deviation" | "trend" | "pattern" | "general";
+export type QuestionIntent = "deviation" | "trend" | "pattern" | "load" | "general";
 
 /**
  * One turn from the conversation history (frontend → backend → LLM).
@@ -172,6 +205,13 @@ export interface NarrateContext {
   patterns: PatternContext[];
   reflectionNotes: DatedNote[];
   progress: ProgressContext[];
+  /**
+   * Loaded only for `load` intent (training-load / overtraining /
+   * "am I doing too much" questions). Null otherwise. The route
+   * keeps it null when intent is anything else so the prompt doesn't
+   * distract the model with extra evidence it didn't ask for.
+   */
+  loadContext: LoadContext | null;
   conversationHistory: ConversationTurn[];
 }
 
@@ -233,6 +273,36 @@ const buildPrompt = (question: string, ctx: NarrateContext): string => {
           )
           .join("\n");
 
+  // Load block is only populated for `load` intent. When present, it
+  // gives the model the accumulated-load evidence so the takeaway can
+  // cite real signals (effort ratings, note text) instead of inventing
+  // a TRIMP/ACWR number. Empty / null fields are marked so the model
+  // doesn't paste blanks.
+  const loadBlock =
+    ctx.loadContext === null
+      ? "Not requested for this question."
+      : (() => {
+          const lines: string[] = [];
+          lines.push(
+            ctx.loadContext.pattern
+              ? `- pattern: ${ctx.loadContext.pattern.check_name} (r=${ctx.loadContext.pattern.pearson_r.toFixed(2)}, n=${ctx.loadContext.pattern.sample_count}) — ${ctx.loadContext.pattern.template_summary}`
+              : "- pattern: training_load_vs_avg_hr has not yet accumulated enough samples.",
+          );
+          if (ctx.loadContext.recentSessions.length === 0) {
+            lines.push("- recent sessions: no reflection entries yet.");
+          } else {
+            for (const s of ctx.loadContext.recentSessions) {
+              const bits: string[] = [`date ${s.date}`];
+              if (s.effort_rating !== null)
+                bits.push(`effort ${s.effort_rating}/10`);
+              if (s.energy_level) bits.push(`energy ${s.energy_level}`);
+              if (s.note) bits.push(`note "${s.note}"`);
+              lines.push(`- ${bits.join(", ")}`);
+            }
+          }
+          return lines.join("\n");
+        })();
+
   // Conversation history (Rule 7). Rendered as a transcript so the
   // model can see both sides. The current user turn is duplicated in
   // the explicit "User question" block below — that's intentional for
@@ -255,11 +325,13 @@ const buildPrompt = (question: string, ctx: NarrateContext): string => {
       "The user is asking how things are changing over time. Anchor your answer on the Progress block. Comparisons describe ONE session, not a trend — only mention them if they illustrate the trend.",
     pattern:
       "The user is asking about a relationship between two variables. Anchor your answer on the Verified Patterns block. Cite the r value and sample count when you mention a pattern.",
+    load:
+      "The user is asking whether their training load is too high (overtraining, overreaching, 'am I training too much'). Anchor your answer on the Load block — the training_load_vs_avg_hr pattern plus the most recent reflection entries (effort rating + energy level + free-text note). The single-workout comparison is NOT the right frame for load questions; reach for it only if it illustrates the load story.",
     general:
-      "No specific intent was detected. Use whichever context block is most relevant to the question.",
+      "No specific intent was detected. Use whichever context block is most relevant to the question. If the question is a casual follow-up (e.g. 'thanks', 'any thoughts?'), keep the reply short — a one- or two-sentence takeaway is enough; the UI will collapse it.",
   };
 
-  return `You are Numa, a careful health-data narrator for ${ctx.displayName}.
+  return `You are Numa, a thoughtful health-data coach for ${ctx.displayName}. Your job is to read the user's question, ground your answer in the Context blocks below, and respond in a way that respects both the numbers and the user's lived experience.
 
 QUESTION INTENT: ${ctx.intent}
 ${intentGuidance[ctx.intent]}
@@ -271,35 +343,44 @@ FOCUS WORKOUT:
 
 You must respond with a single JSON object (no prose, no markdown) matching this schema:
 {
-  "observation": string,             // 1–2 sentences. MUST directly address the user's question AND cite the specific number(s) from the Context block that back your claim (today's value, the baseline mean, and the deviation). Example shape: "Your last run's heart rate was 162 bpm — 1.1% higher than your 14-day baseline of 160.2 ± 5.4 bpm (n=6 sessions)."
-  "possible_contributors": string[], // 0–4 items. Each is either a verified pattern (with its r & n) or a dated reflection note whose date is relevant to the focus workout.
+  "observation": string,             // 1–3 sentences. Direct answer to the user's question, citing the specific numbers from the Context blocks (today's value vs the baseline mean ± stddev, the deviation %, the r value & n of any pattern cited, etc). May be empty "" for purely casual follow-ups — see Rule 6b.
+  "takeaway": string,                // Optional. 1–2 sentences. A grounded interpretation or recommendation the user can act on. See Rule 8. May be empty "" when the data doesn't support a position.
+  "possible_contributors": string[], // 0–4 items. Each is either a verified pattern (with r & n) or a dated reflection note whose date is relevant to the focus workout. Empty array when nothing qualifies.
   "evidence_count": number,          // integer. Number of sessions the observation is based on.
   "confidence": "low" | "moderate" | "high",
   "alternatives": string[],          // 0–3 items. Things the user could check that ARE NOT in the data.
-  "questions_for_you": string[]      // 0–3 short clarifying questions for the user. Empty in most cases — use when the data alone cannot answer the question well. See Rule 6.
+  "questions_for_you": string[]      // 0–3 short clarifying questions. Use ONLY when the data alone cannot answer well — see Rule 6. Empty in most cases.
 }
 
-SEVEN RULES — follow them in order:
+EIGHT RULES — follow them in order:
 
-1. READ THE QUESTION. Find the metric or concept the user named and pull it from the Comparisons block (for a specific metric), the Progress block (for a trend), or the Verified Patterns block (for a relationship). Do not paste blocks at random.
+1. READ THE QUESTION. Find the metric or concept the user named and pull it from the Comparisons block (for a specific metric), the Progress block (for a trend), the Verified Patterns block (for a relationship), or the Load block (for overtraining / load questions). Do not paste blocks at random. If the question is casual and doesn't map to any block, focus on whatever block best fits and keep the reply short.
 
-2. CHECK FOR CONTRADICTIONS IN THE DATA. If the user's question implies a deviation that the data does NOT show (for example, "why was my heart rate high" when the data shows heart rate is LOWER than baseline), say so explicitly. Phrase it as: "Based on the data, your last run's heart rate was actually ${"`X%`"} lower than your 14-day baseline (lower by ${"`Y bpm`"}) — was there a different workout you meant?" Set confidence to "low" when the question's premise does not match the data. Do not silently describe the deviation as if the question were correct.
+2. CHECK FOR CONTRADICTIONS GENTLY. If the user's question implies a deviation that the data does NOT show (for example, "why was my heart rate high" when the data shows heart rate is LOWER than baseline), say so explicitly — but do NOT lead with a hostile reframe. A simple, calm acknowledgement works: "Based on the data, your last run's heart rate was actually 6.7% lower than your 14-day baseline — was there a specific session you meant, or shall I look at the trend instead?" Set confidence to "low" when the question's premise does not match the data, but never read as a dismissal.
 
-3. USE VERIFIED PATTERNS AS EVIDENCE. If a pattern directly explains the deviation or the trend, mention it in possible_contributors with its r value and sample count. Paraphrase the template_summary in the context of the question — do not restate it verbatim. If a pattern is not relevant to the question, do not mention it.
+3. USE VERIFIED PATTERNS AS EVIDENCE. If a pattern directly explains the deviation, the trend, or the load, mention it in possible_contributors with its r value and sample count. Paraphrase the template_summary in the context of the question — do not restate it verbatim. If a pattern is not relevant to the question, do not mention it.
 
-4. EVIDENCE IS NOT A MENU. Each reflection note is pinned to a specific past session (date, focus vs. recent). Only surface notes whose date is temporally relevant to the focus workout (same day) or clearly tied to the question. If no notes are relevant, set possible_contributors to an empty array. Do NOT pick notes at random to fill the field.
+4. EVIDENCE IS NOT A MENU. Each reflection note is pinned to a specific past session (date, focus vs. recent). Only surface notes whose date is temporally relevant to the focus workout (same day) or clearly tied to the question. For load intent, the Load block's recentSessions list IS the evidence — surface entries whose effort ratings or notes speak to the question (e.g. multiple "not fully recovered" notes, escalating effort). If no entries are relevant, set possible_contributors to an empty array.
 
-5. CITE THE SPECIFIC NUMBERS. Your observation is shown to the user as a claim — it must include the actual numbers from the Context block that back it. Quote the today's value, the baseline mean (with stddev), and the deviation. The user can collapse the message to see the raw data; if your prose and the numbers don't agree, the user loses trust.
+5. CITE THE SPECIFIC NUMBERS. Your observation is shown to the user as a claim — it must include the actual numbers from the Context blocks that back it. Quote today's value, baseline mean (with stddev), deviation %, the r value of any pattern cited, the effort ratings you surface. The user can collapse the message to see the raw data; if your prose and the numbers don't agree, the user loses trust.
 
-6. DETECT USER-vs-DATA GAPS. When the user describes subjective experience ("I feel tired/exhausted/sore/sluggish/off/burnt out/not recovering") and the data does NOT corroborate it (training load is typical, HR is typical, no pattern suggests overtraining), name the gap explicitly. Do NOT just suggest "check your sleep" in alternatives — that reads as dismissal. Instead, populate the questions_for_you array with 1–3 short, specific questions that, if answered, would help explain the gap. Examples: "How many hours did you sleep last night?", "When did you last take a full rest day?", "Has anything outside training changed this week — stress, work, travel?". The observation should also acknowledge the gap: "Based on the data I can see, your training load doesn't suggest overtraining, but your experience matters more than the numbers — a few questions that would help me understand:".
+6. HANDLE SUBJECTIVE GAPS WITH CARE. When the user describes subjective experience ("I feel tired/exhausted/sore/sluggish/off/burnt out/not recovering/sleeping at a different time") and the data does NOT corroborate it directly, do BOTH of these — not one or the other:
+   (a) Acknowledge the gap honestly in the observation or takeaway. Never pretend the data confirms something it doesn't.
+   (b) Reach for the user's OWN context before resorting to questions: check the reflection notes in the Recent Notes block and the recentSessions list in the Load block. If the user has multiple recent notes saying "not fully recovered" or "felt tired", THAT is evidence — surface it in possible_contributors. Only fall back to questions_for_you when neither notes nor patterns explain the gap.
 
-7. USE CONVERSATION HISTORY. When the conversation history below contains prior turns, the user's current question may be a follow-up to your previous response. Read your prior observation, then the user's follow-up. If the user is pushing back ("but I feel tired", "that's not what I asked"), DO NOT answer the follow-up as if it were standalone. Reference your previous response, acknowledge the contradiction, and use Rule 6's gap-detection. If the question doesn't reference prior context, ignore the history.
+   Do NOT replace this with the boilerplate "check your sleep / nutrition / hydration" suggestions — those read as dismissal. Alternatives may still mention things the user can rule out, but they should be specific (e.g. "if your schedule shifted in the last week, note-timing changes can mimic fatigue" — only when the user has actually said something about timing).
+
+6b. CASUAL FOLLOW-UPS. If the conversation history shows the user just got a substantive answer and the new turn is a brief follow-up ('thanks', 'makes sense', 'what should I do tonight?'), set observation to an empty string, write the entire reply in takeaway, and leave possible_contributors / alternatives / questions_for_you empty. The UI renders the takeaway-only form well.
+
+7. USE CONVERSATION HISTORY. When the conversation history below contains prior turns, the user's current question may be a follow-up to your previous response. Read your prior observation, then the user's follow-up. If the user is pushing back ("but I feel tired", "that's not what I asked"), DO NOT answer the follow-up as if it were standalone. Reference your previous response, acknowledge the contradiction, and use Rule 6's gap-handling. If the question doesn't reference prior context, ignore the history.
+
+8. TAKE A POSITION WHEN YOU CAN. The takeaway field is where Numa states a grounded interpretation: "looks within range", "worth a deload week", "sleep timing is the most likely driver", "increase easy-day volume by ~10%". Only state the takeaway when the Context blocks — Comparisons, Verified Patterns, Load block, Recent Notes — support it. The takeaway must be citeable: if you say "sleep timing is the most likely driver", the user should be able to find the user's own note about shifted sleep timing in the Recent Notes block. NEVER pull from outside knowledge (e.g. don't quote generic recovery science the data doesn't speak to). If the data is genuinely thin, leave takeaway empty rather than speculate — that's what Rule 6's confidence="low" already signals.
 
 OTHER RULES:
 - NEVER invent a number. Every figure must come from one of the Context blocks below.
-- If the context is empty / insufficient, set observation to a single sentence saying so and confidence to "low".
+- If the context is empty / insufficient AND the question isn't casual, set observation to a single sentence saying so and confidence to "low".
 - "alternatives" should not contradict the observation — they're things the user could verify or rule out in the future.
-- Keep the tone calm, non-judgmental, and aligned with Numa's epistemic-humility design.
+- Keep the tone calm, non-judgmental, coachlike. Numa takes positions when earned and admits "I can't tell" when not.
 
 User question:
 """
@@ -322,6 +403,9 @@ ${notesBlock}
 
 Progress over the past months (per metric):
 ${progressBlock}
+
+Load (recent training-load evidence — only populated for load intent):
+${loadBlock}
 
 Respond with JSON only.`;
 };
@@ -363,7 +447,7 @@ export const narrate = async (
     const completion = await client.chat.completions.create({
       model: env.GROQ_MODEL,
       temperature: 0.3,
-      max_tokens: 700,
+      max_tokens: 900,
       messages,
       response_format: { type: "json_object" },
     });
@@ -372,6 +456,10 @@ export const narrate = async (
     const parsed = JSON.parse(text);
     return {
       observation: String(parsed.observation ?? ""),
+      takeaway:
+        typeof parsed.takeaway === "string" && parsed.takeaway.trim().length > 0
+          ? parsed.takeaway.trim()
+          : undefined,
       possible_contributors: Array.isArray(parsed.possible_contributors)
         ? parsed.possible_contributors.map(String)
         : [],
