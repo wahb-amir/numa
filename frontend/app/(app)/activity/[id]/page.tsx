@@ -34,6 +34,50 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+// Display unit for each known metric key. Keys match the snake_case
+// emitted by the data-gen (`data-gen/src/seed.ts`) and the Phase 2 stats
+// pipeline (`backend/src/utils/metrics.ts`). Unknown keys fall through to
+// no unit — preserves the previous behavior for ad-hoc metrics.
+const METRIC_UNIT: Record<string, string> = {
+  // Workout metrics
+  avg_hr: "bpm",
+  max_hr: "bpm",
+  min_hr: "bpm",
+  resting_hr: "bpm",
+  avg_pace_min_km: "min/km",
+  avg_pace_sec_per_km: "sec/km",
+  avg_pace_sec_per_mile: "sec/mi",
+  avg_speed_kmh: "km/h",
+  distance_km: "km",
+  distance: "km",
+  elevation_gain_m: "m",
+  calories: "kcal",
+  steps: "steps",
+  avg_cadence: "rpm",
+  avg_power: "W",
+  max_power: "W",
+  // Today's-state metrics (dashboard cards)
+  sleep_hours: "h",
+  training_load: "TSS",
+  recovery_score: "/100",
+  fitness_level: "CTL",
+  weather_temp: "°C",
+  temperature_c: "°C",
+  hrv: "ms",
+};
+
+/**
+ * Render pace as `M:SS` (e.g. `5.5 → "5:30"`) instead of decimal minutes.
+ * Runners read pace in min:sec, not minutes.minutes — `1.83 min/km` reads
+ * as a typo.
+ */
+function formatPace(minPerKm: number): string {
+  const total = Math.round(minPerKm * 60);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 // Metric keys whose stored value is already a whole-second integer.
 // Rendered without decimals so "328 sec/km" doesn't read as "328.0 sec/km".
 const INTEGER_METRIC_KEYS = new Set([
@@ -193,6 +237,12 @@ export default function ActivityDetailPage({
                   {/* Render any extra numeric metrics from the metrics JSONB */}
                   {Object.entries(workout.metrics ?? {})
                     .map(([key, raw]) => {
+                      // Underscore-prefixed keys (e.g. `_sleep_hours`,
+                      // `_training_load`) are internal correlation-worker
+                      // inputs — not user-facing metrics. The seed stores
+                      // both `sleep_hours` and `_sleep_hours`, so without
+                      // this filter the same tile renders twice.
+                      if (key.startsWith("_")) return null;
                       // Accept numbers and numeric strings — Supabase JSONB
                       // sometimes returns numeric values as strings when
                       // they were stored via the postgres ::text cast.
@@ -208,11 +258,23 @@ export default function ActivityDetailPage({
                       const label = key
                         .replace(/_/g, " ")
                         .replace(/\b\w/g, (c) => c.toUpperCase());
+                      const isPace =
+                        key === "avg_pace_min_km" ||
+                        key === "avg_pace_sec_per_km";
                       return (
                         <MetricStat
                           key={key}
                           label={label}
-                          value={formatMetric(num, label)}
+                          value={
+                            isPace
+                              ? formatPace(
+                                  key === "avg_pace_sec_per_km"
+                                    ? num / 60
+                                    : num,
+                                )
+                              : formatMetric(num, label)
+                          }
+                          unit={METRIC_UNIT[key]}
                         />
                       );
                     })}
