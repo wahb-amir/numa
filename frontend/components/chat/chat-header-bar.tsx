@@ -2,9 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, MessageSquarePlus } from "lucide-react";
+import { Database, Menu, MessageSquarePlus } from "lucide-react";
 import { useChatSessions } from "@/lib/use-chat-sessions";
 import { cn } from "@/lib/utils";
+
+/**
+ * Mirrors the data sources the narrate model is told to draw on.
+ * Kept here (instead of a separate ContextDrawer component) so the
+ * chat header is the single source of truth for the rail + thread
+ * chrome — the strip above the thread used to duplicate this and cost
+ * a full-width row of vertical space.
+ */
+const CONTEXT_SOURCES = [
+  "Today's baseline comparison",
+  "Verified correlation patterns",
+  "Recent reflection notes",
+];
 
 /**
  * Slim sticky header above the chat history rail + thread. Two
@@ -62,34 +75,54 @@ export function ChatHeaderBar({
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border bg-surface-base/95 px-4 backdrop-blur-sm lg:px-6">
-      <button
-        type="button"
-        onClick={isRailCollapsed ? onToggleRail : onOpenDrawer}
-        aria-label={
-          isRailCollapsed ? "Show chat history" : "Open chat history"
-        }
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control text-text-secondary hover:bg-surface-sunken"
-      >
-        <Menu className="h-4 w-4" aria-hidden="true" />
-      </button>
+    <header className="sticky top-0 z-20 flex flex-col gap-1.5 border-b border-border bg-surface-base/95 px-4 py-2 backdrop-blur-sm lg:px-6">
+      <div className="flex h-9 items-center gap-2">
+        <button
+          type="button"
+          onClick={isRailCollapsed ? onToggleRail : onOpenDrawer}
+          aria-label={
+            isRailCollapsed ? "Show chat history" : "Open chat history"
+          }
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control text-text-secondary hover:bg-surface-sunken"
+        >
+          <Menu className="h-4 w-4" aria-hidden="true" />
+        </button>
 
-      <div className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
-        {activeSessionTitle ?? "Ask Numa"}
+        <div className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
+          {activeSessionTitle ?? "Ask Numa"}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleNew}
+          disabled={isCreating}
+          className={cn(
+            "flex shrink-0 items-center gap-1.5 rounded-control border border-border bg-surface-raised px-2.5 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-sunken disabled:opacity-60",
+          )}
+        >
+          <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden="true" />
+          <span className="hidden sm:inline">New chat</span>
+          <span className="sr-only sm:hidden">New chat</span>
+        </button>
       </div>
 
-      <button
-        type="button"
-        onClick={handleNew}
-        disabled={isCreating}
-        className={cn(
-          "flex shrink-0 items-center gap-1.5 rounded-control border border-border bg-surface-raised px-2.5 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-sunken disabled:opacity-60",
-        )}
+      <div
+        className="flex items-center gap-2 overflow-x-auto"
+        aria-label="Data sources in use"
       >
-        <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden="true" />
-        <span className="hidden sm:inline">New chat</span>
-        <span className="sr-only sm:hidden">New chat</span>
-      </button>
+        <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+          <Database className="h-3.5 w-3.5" aria-hidden="true" />
+          Using
+        </div>
+        {CONTEXT_SOURCES.map((s) => (
+          <span
+            key={s}
+            className="shrink-0 rounded-chip border border-border-strong bg-surface-raised px-2 py-0.5 text-xs font-medium text-text-secondary"
+          >
+            {s}
+          </span>
+        ))}
+      </div>
     </header>
   );
 }

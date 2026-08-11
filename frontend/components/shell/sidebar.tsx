@@ -13,18 +13,18 @@ export function Sidebar() {
   return (
     <nav
       aria-label="Primary"
-      className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface-raised lg:flex"
+      className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface-raised lg:flex"
     >
       <Link
         href="/dashboard"
-        className="flex h-16 items-center gap-2 border-b border-border px-6"
+        className="flex h-16 items-center gap-2 border-b border-border px-4"
       >
         <div className="flex h-7 w-7 items-center justify-center rounded-control bg-accent-emerald text-sm font-bold text-text-inverse">
           N
         </div>
         <span className="text-sm font-bold tracking-tight">Numa</span>
       </Link>
-      <ul className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      <ul className="flex-1 space-y-1 overflow-y-auto px-2 py-3">
         {NAV_ITEMS.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(item.href + "/");

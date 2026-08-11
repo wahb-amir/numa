@@ -84,11 +84,11 @@ export function ChatHistorySidebar({
     <aside
       aria-label="Chat history"
       className={cn(
-        "flex h-full w-64 shrink-0 flex-col border-r border-border bg-surface-raised",
+        "flex h-full w-56 shrink-0 flex-col border-r border-border bg-surface-raised",
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
           Chats
         </h2>

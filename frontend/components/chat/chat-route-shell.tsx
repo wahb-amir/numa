@@ -77,9 +77,9 @@ export function ChatRouteShell() {
         <ChatHistorySidebar
           className={isRailCollapsed ? "hidden" : "hidden lg:flex"}
         />
-        <main
-          id="main-content"
-          className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface-base"
+        <section
+          aria-label="Chat thread"
+          className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface-base pb-24 lg:pb-0"
         >
           <ChatPageShell
             key={`${sessionId ?? "none"}::${refreshNonce}`}
@@ -87,7 +87,7 @@ export function ChatRouteShell() {
             displayName={displayName}
             onSessionUpdated={() => setRefreshNonce((n) => n + 1)}
           />
-        </main>
+        </section>
       </div>
       <ChatHistoryTrigger
         open={drawerOpen}

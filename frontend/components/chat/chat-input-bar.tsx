@@ -37,7 +37,7 @@ export function ChatInputBar({
         e.preventDefault();
         submit();
       }}
-      className="bg-surface-base px-4 pb-4 pt-2 lg:px-8"
+      className="bg-surface-base px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2 lg:px-8"
     >
       <div className="mx-auto flex max-w-2xl items-center gap-2 rounded-control border border-border-strong bg-surface-raised px-3 shadow-elevation-1 transition-shadow focus-within:border-accent-emerald focus-within:shadow-elevation-2">
         <label htmlFor="chat-input" className="sr-only">
