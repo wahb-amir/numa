@@ -1,3 +1,13 @@
+---
+title: Numa
+emoji: 🏃
+colorFrom: green
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Numa
 
 An AI-powered personal health and performance context platform. Built as a

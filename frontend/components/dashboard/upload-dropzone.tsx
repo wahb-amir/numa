@@ -147,7 +147,7 @@ export function UploadDropzone() {
     wsRef.current = socket;
     let settled = false;
 
-    // 2s open timeout — if we don't get the upgrade, fall back to polling.
+    // 8s open timeout — if we don't get the upgrade, fall back to polling.
     const openTimeout = setTimeout(() => {
       if (settled) return;
       if (socket.readyState !== WebSocket.OPEN) {
@@ -156,7 +156,7 @@ export function UploadDropzone() {
         wsRef.current = null;
         startFallbackPoll(uploadId);
       }
-    }, 2000);
+    }, 8000);
 
     socket.onmessage = (ev) => {
       try {
