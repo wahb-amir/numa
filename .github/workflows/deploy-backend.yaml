@@ -1,4 +1,3 @@
-```yaml
 name: Deploy Backend
 
 on:
@@ -48,4 +47,4 @@ jobs:
           repo_type: space
           space_sdk: docker
           subdirectory: backend
-```
+
