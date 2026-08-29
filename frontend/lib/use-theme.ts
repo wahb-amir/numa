@@ -56,12 +56,18 @@ export function applyTheme(pref: ThemePreference): "light" | "dark" {
  * any other client component that wants to label itself).
  */
 export function useTheme() {
-  const [preference, setPreference] = useState<ThemePreference>(() =>
-    readStoredPref(),
-  );
-  const [systemDark, setSystemDark] = useState<boolean>(() =>
-    systemPrefersDark(),
-  );
+  // Use SSR-safe defaults for the initial render so that the server HTML
+  // and the first client render always agree (avoiding hydration mismatches).
+  // A useEffect below immediately syncs to the real client values after mount.
+  const [preference, setPreference] = useState<ThemePreference>("system");
+  const [systemDark, setSystemDark] = useState<boolean>(false);
+
+  // Sync to actual stored preference + OS dark-mode state after hydration.
+  useEffect(() => {
+    setPreference(readStoredPref());
+    setSystemDark(systemPrefersDark());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Apply + persist whenever the preference changes.
   useEffect(() => {
