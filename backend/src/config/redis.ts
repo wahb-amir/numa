@@ -3,7 +3,11 @@ import { env } from "./env";
 
 export const redisConnection = new Redis({
   host: env.REDIS_HOST,
-  port: env.REDIS_PORT,
+  port: Number(env.REDIS_PORT),
+  username: "app",
   password: env.REDIS_PASSWORD || undefined,
   maxRetriesPerRequest: null,
+  tls: {
+    rejectUnauthorized: false, 
+  },
 });
