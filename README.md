@@ -43,7 +43,9 @@ numa/
 ├── frontend/               # Next.js 16 (App Router)
 │   ├── app/(app)/          # authenticated shell: dashboard, today, activity, insights, reports, chat, timeline, upload, profile
 │   ├── components/         # charts, dashboard widgets, chat, ui primitives
-│   └── lib/                # api-client, types, supabase, units, mock-data
+│   │   └── chat/           # chat-history-sidebar, chat-sources, chat-thread, chat-page-shell, chat-route-shell, chat-header-bar, chat-input-bar, context-drawer
+│   ├── lib/                # api-client, types, supabase, units, mock-data, use-chat-sessions, use-theme
+│   └── hooks/              # (if any)
 ├── data-gen/               # standalone Supabase seeder + sample CSV/GPX exporter
 └── sample-data/            # generated sample files for upload testing
 ```
@@ -87,6 +89,7 @@ project, in order:
 - `002_create_storage_bucket.sql` — `raw-uploads` private bucket with per-user folder RLS
 - `003_user_profiles.sql` — user_profiles (display_name, units)
 - **`004_phase2_intelligence.sql`** — multi-window baselines uniqueness, `discovered_patterns`, `daily_metrics`
+- **`005_chat_sessions.sql`** — `chat_sessions` + `chat_messages` for persistent chat history with history rail (Claude/ChatGPT-style sidebar), auto-derived titles, message counts, and narration JSON persistence
 
 ### Frontend
 
@@ -255,7 +258,30 @@ back to a templated message — the rest of the system runs without an LLM.
 
 ---
 
-## Endpoints (Phase 2 additions in **bold**)
+## Chat system (Phase 2.5)
+
+The `/chat` route has been rewritten as a persistent, Claude/ChatGPT-style
+conversation interface:
+
+- **History rail** — left sidebar lists all past sessions ordered by most recent activity (`updated_at`). Each session shows an auto-derived title (first 60 chars of the first user message) and message count.
+- **Session persistence** — conversations survive reloads. Sessions are created lazily on the first narrate call or explicitly via the "New chat" button.
+- **Full transcript hydration** — clicking a session loads its complete message history from `chat_messages`.
+- **Narration sources panel** — assistant messages surface their evidence: the exact `template_summary` from `discovered_patterns`, the baseline/comparison numbers used, the reflection notes cited, and the intent classification (load / trend / pattern / deviation / general).
+- **Follow-up questions** — the LLM response includes `questions_for_you` (2-3 suggested follow-ups grounded in the data just discussed).
+- **Intent classification** — the narrate route classifies the question before building context:
+  - `load` — "am I training too much right now?" → pulls `training_load_vs_avg_hr` pattern + last 7 reflection effort/energy/notes
+  - `trend` — "how is my progress going?" → pulls month-over-month progress data
+  - `pattern` — "does sleep affect my pace?" → pulls relevant `discovered_patterns`
+  - `deviation` — "why was my HR high today?" → pulls full per-metric comparison for the focus workout
+  - `general` — falls back to available context
+- **Conversation history** — the last 6 turns are passed to the LLM so it can reference its own prior replies when the user follows up with subjective experience the data doesn't corroborate.
+- **Takeaway field** — assistant responses include a `takeaway` (1-2 sentence grounded interpretation) used as the condensed representation in conversation history.
+
+All chat data is RLS-scoped to the authenticated user via `chat_sessions` and `chat_messages` tables (migration 005).
+
+---
+
+## Endpoints (Phase 2 additions in **bold**, Chat additions in ***bold italics***)
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -274,8 +300,34 @@ back to a templated message — the rest of the system runs without an LLM.
 | **POST** | **`/api/workouts/:id/recompute`** | **manual recompute trigger** |
 | POST | `/api/uploads/sign` | signed upload URL |
 | POST | `/api/uploads/:id/complete` | enqueue processing |
-| **POST** | **`/api/chat/narrate`** | **Groq narration** |
+| **POST** | **`/api/chat/narrate`** | **Groq narration (now with session_id, history, intent classification, sources, follow-ups)** |
+| ***GET*** | ***`/api/chat/sessions`*** | ***list user's chat sessions (ordered by updated_at desc, with message_count)*** |
+| ***POST*** | ***`/api/chat/sessions`*** | ***create new chat session*** |
+| ***GET*** | ***`/api/chat/sessions/:id/messages`*** | ***load full transcript for a session*** |
+| ***PATCH*** | ***`/api/chat/sessions/:id`*** | ***rename session (title)*** |
+| ***DELETE*** | ***`/api/chat/sessions/:id`*** | ***delete session (cascades to messages)*** |
 | WS | `/ws/uploads?token=...&uploadId=...` | live upload progress |
+
+---
+
+## Deployment: Hugging Face Spaces (Docker)
+
+The backend includes a `Dockerfile` and GitHub Actions workflow
+(`.github/workflows/deploy-backend.yaml`) for deploying to Hugging Face
+Spaces as a Docker Space.
+
+Key configuration:
+
+- **Port**: The app listens on `7860` (HF Spaces requirement) — set via `PORT` env var
+- **WebSocket proxy**: The `ws` package proxies `/ws/uploads` to the internal WebSocket server
+- **Redis**: Connects to `127.0.0.1:6379` with `family: 4` (IPv4) to avoid IPv6 issues in container environments
+- **Timeouts**: Increased HTTP/WS timeouts for large file uploads
+
+To deploy:
+
+1. Push to a Hugging Face Space (Docker SDK)
+2. Set Space secrets: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWT_SECRET`, `GROQ_API_KEY` (optional), `REDIS_URL` (if using managed Redis)
+3. The workflow builds and pushes on merge to `main`
 
 ---
 
@@ -286,6 +338,8 @@ in earlier docs — warm off-white surfaces, muted emerald + slate accents,
 near-flat cards, single typeface (Public Sans). All colours route through
 semantic tokens in `frontend/app/globals.css`; re-theming the app is a
 one-file edit.
+
+**Theme system** — The app now has a complete theme toggle with three modes: `light`, `dark`, `system`. The `use-theme.ts` hook initializes to `system` and syncs with the actual resolved theme (via `window.matchMedia`). The `theme-nav-controls` and `theme-toggle` components provide the UI in the top header.
 
 Epistemic humility is a first-class UI pattern: confidence badges, structured
 Observation / Supporting Evidence / Confidence / Alternative Explanations
