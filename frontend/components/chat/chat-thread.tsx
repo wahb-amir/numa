@@ -5,6 +5,7 @@ import { ChatMessage } from "./chat-message";
 import { ChatInputBar } from "./chat-input-bar";
 import { narrate } from "@/lib/api-client";
 import { useChatSessionMessages } from "@/lib/use-chat-sessions";
+import { useDemo } from "@/lib/demo-context";
 import type { ApiNarration, ChatMessage as ChatMessageType } from "@/lib/types";
 
 /**
@@ -32,6 +33,7 @@ export function ChatThread({
     isLoading,
     refresh,
   } = useChatSessionMessages(sessionId);
+  const { isDemo, decrementNarrate } = useDemo();
 
   // Local list — seeded from server messages but grown optimistically as
   // the user sends and as new assistant turns arrive. Server messages
@@ -104,20 +106,25 @@ export function ChatThread({
 
       try {
         const result = await narrate(trimmed, { sessionId });
+        if (isDemo && (result as any).narrate_remaining !== undefined) {
+          decrementNarrate();
+        }
         // Refresh from the server so the assistant turn has its canonical
         // id + persisted sources. The optimistic user message and the new
         // assistant message are both written by /api/chat/narrate.
         await refresh();
         onSessionUpdated?.();
-      } catch (err) {
+      } catch (err: any) {
         console.error("narrate failed", err);
+        const isQuota = err?.response?.data?.error === "demo_quota_exceeded";
         const fallback: ChatMessageType = {
           id: `a-${Date.now()}`,
           role: "assistant",
           content: "",
-          observation:
-            "I can't reach the narration model right now. The stats pipeline still works — check the Activity and Insights pages for pre-computed comparisons and patterns.",
-          confidence: "low",
+          observation: isQuota
+            ? err?.response?.data?.message || "You've used all 5 AI queries in this demo session. Sign up for unlimited access."
+            : "I can't reach the narration model right now. The stats pipeline still works — check the Activity and Insights pages for pre-computed comparisons and patterns.",
+          confidence: isQuota ? undefined : "low",
         };
         setLocalMessages((prev) => [...prev, fallback]);
       } finally {

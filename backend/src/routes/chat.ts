@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { requireAuth, AuthenticatedRequest } from "../middleware/auth";
-import { supabase, getScopedSupabaseClient } from "../config/supabase";
+import { supabase, supabaseSecret, getScopedSupabaseClient } from "../config/supabase";
 import {
   narrate,
   isLlmConfigured,
@@ -367,6 +367,34 @@ chatRouter.post(
         });
       }
 
+      // --- Demo quota guard ---
+      // Check before doing any expensive work. Reads from the users table
+      // via the service-role client so the column is always visible regardless
+      // of RLS. Only applied when demo_narrate_limit is non-null.
+      let isDemoAccount = false;
+      let narrateRemaining: number | null = null;
+      {
+        const { data: userRow } = await supabaseSecret
+          .from("users")
+          .select("demo_narrate_count, demo_narrate_limit")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (userRow && typeof userRow.demo_narrate_limit === "number") {
+          isDemoAccount = true;
+          const remaining = userRow.demo_narrate_limit - (userRow.demo_narrate_count ?? 0);
+          narrateRemaining = Math.max(0, remaining);
+          if (narrateRemaining <= 0) {
+            return res.status(429).json({
+              error: "demo_quota_exceeded",
+              message:
+                "You've used all 5 AI queries in this demo session. Sign up for unlimited access.",
+              narrate_remaining: 0,
+            });
+          }
+        }
+      }
+
       // Resolve the chat session. RLS scopes both writes to the
       // current user — if session_id is provided but doesn't belong
       // to them, the insert/select returns 0 rows and we 404.
@@ -716,7 +744,18 @@ chatRouter.post(
         narration: payload,
       });
 
-      return res.status(200).json({ ...payload, session_id: activeSessionId });
+      // Increment the demo narrate counter after a successful narration.
+      if (isDemoAccount) {
+        // Use a raw increment so concurrent calls don't race
+        await supabaseSecret.rpc("increment_demo_narrate_count", { uid: userId });
+        narrateRemaining = narrateRemaining !== null ? Math.max(0, narrateRemaining - 1) : null;
+      }
+
+      return res.status(200).json({
+        ...payload,
+        session_id: activeSessionId,
+        ...(narrateRemaining !== null && { narrate_remaining: narrateRemaining }),
+      });
     } catch (error) {
       logger.error("chat narrate error:", error);
       res.status(500).json({ error: "Internal server error" });

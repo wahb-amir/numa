@@ -107,15 +107,48 @@ Open http://localhost:3000.
 cd data-gen
 npm install
 cp .env.example .env   # fill in SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
-npm run seed           # populates 4 personas (3 demo + 1 judging)
+npm run seed           # populates 4 personas (3 demo × 300 days + 1 judging × 18 days)
 ```
 
-See `data-gen/README.md` for the demo account credentials and the underlying
-state model.
+See `data-gen/README.md` for the demo account credentials, the underlying
+state model, and the deterministic stat pipeline.
 
 ---
 
 ## Phase 2 — stats pipeline architecture
+
+### Synthetic data & deterministic stat system
+
+The seeder in `data-gen/` drives all three demo personas through a fully
+deterministic simulation before any AI runs:
+
+1. **PRNG seed** — every random draw uses mulberry32 keyed to
+   `baseSeed + dayIndex * N`, so re-running `npm run seed` with the same
+   config always produces byte-identical data.
+2. **Day-state simulation** (`simulateDayStates`) — iterates day-by-day
+   over the 300-day window, maintaining cumulative `trainingLoad` and
+   `fitnessLevel`. Sleep streaks, workout decisions, and weather all flow
+   from the seeded RNG.
+3. **Metric derivation** (`deriveWorkoutMetrics`) — applies linear
+   coefficients (`sleepToPaceCoeff`, `loadToHrCoeff`, `heatToPaceCoeff`)
+   to bake real, discoverable correlations into every workout record.
+4. **Dashboard snapshot** (`deriveTodayState`) — maps the day state into
+   the `resting_hr`, `recovery_score`, `sleep_hours`, and `training_load`
+   values the Recovery / RHR / Sleep / Load cards read out of
+   `workouts.metrics`.
+5. **Baseline backfill** (`backfillBaselines`) — after inserting workouts,
+   the seeder computes rolling-window mean ± stddev for each
+   `(activity, metric, window_days ∈ {14, 90})` pair, mirroring the
+   BullMQ `baselineWorker`.
+6. **Correlation backfill** (`backfillPatterns`) — runs the three
+   pre-defined Pearson checks over the full history; fires patterns where
+   `n ≥ 8` and `|r| ≥ 0.4`. The 300-day window yields ~120–180 workout
+   samples per persona, making the signals stable and immediately visible
+   on the Insights page without any live uploads.
+
+The 300-day window traces a full seasonal arc (autumn → winter → spring →
+summer) so the heat-adaptation correlation is visible in the runner and
+cyclist data without any manual tuning.
 
 ### Layer 1: Raw workouts
 
@@ -209,7 +242,7 @@ stats layer alone.
   "direction": "improving",
   "sample_count": 12,
   "confidence": "high",
-  "earliest_month": "2026-06",
+  "earliest_month": "2025-12",
   "latest_month": "2026-08"
 }
 ```

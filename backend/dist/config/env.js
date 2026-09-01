@@ -31,6 +31,11 @@ const envSchema = zod_1.z
     REDIS_HOST: zod_1.z.string().min(1).default("127.0.0.1"),
     REDIS_PORT: zod_1.z.coerce.number().default(6379),
     REDIS_PASSWORD: zod_1.z.string().optional().default(""),
+    // Groq LLM (Phase 2 narration layer).
+    // Optional at boot — the /chat/narrate endpoint surfaces a 503 if
+    // missing so the rest of the app can run without an LLM.
+    GROQ_API_KEY: zod_1.z.string().optional().default(""),
+    GROQ_MODEL: zod_1.z.string().optional().default("llama-3.1-8b-instant"),
 })
     .transform((data) => {
     const publishableKey = data.SUPABASE_PUBLISHABLE_KEY || data.SUPABASE_ANON_KEY || "";

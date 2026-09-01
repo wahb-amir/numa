@@ -1,7 +1,20 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requireAuth = void 0;
+exports.requireAuth = exports.verifyJwt = void 0;
 const supabase_1 = require("../config/supabase");
+/**
+ * Verify a Supabase JWT and return the user. Shared between the REST
+ * `requireAuth` middleware and the WebSocket upgrade handler so both code
+ * paths use the exact same token validation.
+ */
+const verifyJwt = async (token) => {
+    const { data: { user }, error, } = await supabase_1.supabase.auth.getUser(token);
+    if (error || !user) {
+        throw new Error(error?.message ?? "Invalid token");
+    }
+    return { id: user.id, email: user.email };
+};
+exports.verifyJwt = verifyJwt;
 const requireAuth = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
@@ -11,19 +24,17 @@ const requireAuth = async (req, res, next) => {
                 .json({ error: "Missing or invalid authorization header" });
         }
         const token = authHeader.split(" ")[1];
-        // Verify token with Supabase
-        const { data: { user }, error, } = await supabase_1.supabase.auth.getUser(token);
-        if (error || !user) {
+        try {
+            const user = await (0, exports.verifyJwt)(token);
+            req.user = user;
+            req.token = token; // Can be used for RLS queries where we need the user's JWT
+            next();
+        }
+        catch (err) {
             return res
                 .status(401)
-                .json({ error: "Unauthorized", details: error?.message });
+                .json({ error: "Unauthorized", details: err?.message });
         }
-        req.user = {
-            id: user.id,
-            email: user.email,
-        };
-        req.token = token; // Can be used for RLS queries where we need the user's JWT
-        next();
     }
     catch (error) {
         console.error("Auth middleware error:", error);

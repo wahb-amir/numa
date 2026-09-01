@@ -211,6 +211,11 @@ export async function narrate(
   return data;
 }
 
+export async function provisionDemo(personaId: "runner_demo" | "cyclist_demo" | "gym_demo") {
+  const { data } = await api.post("/demo/provision", { persona_id: personaId });
+  return data;
+}
+
 /**
  * Chat sessions backing the /chat history sidebar. The backend exposes
  * them under /api/chat/sessions; the first GET on every /chat mount

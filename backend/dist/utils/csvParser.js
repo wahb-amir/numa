@@ -283,8 +283,33 @@ exports.parseCsv = parseCsv;
  * Full-fidelity variant of parseCsv that also returns the rejected rows and
  * stats. The upload worker can use this to surface partial-success messages.
  */
+/**
+ * Strip leading comment lines from CSV text. Many exports (and a lot of
+ * hand-curated test fixtures) begin with `# Row 1: ...` style commentary
+ * that csv-parse would otherwise treat as the header row.
+ *
+ * We only strip lines that begin (after leading whitespace) with `#`,
+ * `;`, or `//` — the three markers commonly seen in CSV exports. The
+ * first non-comment line is left untouched, so embedded `#` inside
+ * values (rare but legal) still round-trip fine.
+ */
+const stripLeadingComments = (raw) => {
+    const lines = raw.split(/\r?\n/);
+    let i = 0;
+    while (i < lines.length) {
+        const trimmed = lines[i].trimStart();
+        if (trimmed.startsWith("#") ||
+            trimmed.startsWith(";") ||
+            trimmed.startsWith("//")) {
+            i++;
+            continue;
+        }
+        break;
+    }
+    return i === 0 ? raw : lines.slice(i).join("\n");
+};
 const parseCsvDetailed = async (buffer, userId, uploadId) => {
-    const text = buffer.toString("utf-8");
+    const text = stripLeadingComments(buffer.toString("utf-8"));
     if (!text.trim()) {
         throw new CsvParserError("EMPTY_FILE", "CSV file is empty");
     }

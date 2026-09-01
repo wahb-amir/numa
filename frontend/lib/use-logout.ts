@@ -64,6 +64,13 @@ export function useLogout(redirectTo = "/login"): UseLogoutResult {
       }
     }
 
+    // Clear demo session state if it exists
+    try {
+      localStorage.removeItem("numa_demo_session");
+    } catch (e) {
+      // ignore
+    }
+
     // Hard refresh so server components re-render with the anonymous
     // session — `router.refresh()` alone can keep cached pages.
     router.push(redirectTo);
