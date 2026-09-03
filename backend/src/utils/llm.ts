@@ -419,6 +419,7 @@ Respond with JSON only.`;
 export const narrate = async (
   question: string,
   ctx: NarrateContext,
+  retries: number = 1
 ): Promise<NarrationPayload | null> => {
   const client = getClient();
   if (!client) return null;
@@ -447,7 +448,7 @@ export const narrate = async (
     const completion = await client.chat.completions.create({
       model: env.GROQ_MODEL,
       temperature: 0.3,
-      max_tokens: 900,
+      max_tokens: 2500,
       messages,
       response_format: { type: "json_object" },
     });
@@ -484,6 +485,26 @@ export const narrate = async (
     };
   } catch (err) {
     logger.error("Groq narration failed:", err);
-    return null;
+    if (retries > 0) {
+      logger.info(`Retrying narrate... (${retries} retries left)`);
+      return narrate(question, ctx, retries - 1);
+    }
+    
+    // Graceful fallback instead of returning null to prevent 503
+    return {
+      observation: "I encountered an error while analyzing the data. Please try rephrasing your question.",
+      evidence_count: 0,
+      confidence: "low",
+      possible_contributors: [],
+      alternatives: [],
+      questions_for_you: [],
+      sources: {
+        focus_workout: ctx.focusWorkout,
+        comparisons: ctx.comparisons,
+        patterns: ctx.patterns,
+        notes: ctx.reflectionNotes,
+        progress: ctx.progress,
+      },
+    };
   }
 };
